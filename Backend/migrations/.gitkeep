@@ -1,0 +1,8 @@
+# Database migrations
+# Alembic migration files will be stored here
+
+# This directory will contain:
+# - versions/ (migration scripts)
+# - env.py (environment configuration)
+# - script.py.mako (migration template)
+# - alembic.ini (alembic configuration)

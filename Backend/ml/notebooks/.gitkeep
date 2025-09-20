@@ -1,0 +1,4 @@
+# Jupyter notebooks for data analysis and ML experimentation
+# Store notebooks for data exploration, model development, and analysis
+
+.ipynb_checkpoints/

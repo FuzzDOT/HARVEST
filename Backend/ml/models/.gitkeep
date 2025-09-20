@@ -1,0 +1,8 @@
+# Trained ML models storage
+# Store serialized models, model artifacts, and metadata
+
+*.pkl
+*.joblib
+*.h5
+*.onnx
+model_metadata.json

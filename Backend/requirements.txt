@@ -1,0 +1,131 @@
+# HARVEST Backend Dependencies
+
+# FastAPI and web framework
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+python-multipart==0.0.6
+
+# Database
+sqlalchemy==2.0.23
+psycopg2-binary==2.9.9  # PostgreSQL adapter
+alembic==1.12.1  # Database migrations
+
+# Pydantic and validation
+pydantic==2.5.0
+pydantic-settings==2.0.3
+email-validator==2.1.0
+
+# Authentication and security
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+python-multipart==0.0.6
+
+# HTTP client for external APIs
+httpx==0.25.2
+requests==2.31.0
+
+# Caching
+redis==5.0.1
+hiredis==2.2.3
+
+# Machine Learning
+scikit-learn==1.3.2
+pandas==2.1.4
+numpy==1.25.2
+joblib==1.3.2
+
+# Data processing and analysis
+scipy==1.11.4
+matplotlib==3.8.2
+seaborn==0.13.0
+
+# Weather and external APIs
+python-dotenv==1.0.0
+pytz==2023.3
+
+# SMS and notifications
+twilio==8.11.0
+
+# Translation services
+google-cloud-translate==3.13.0
+
+# WebSocket support
+websockets==12.0
+
+# Background tasks and scheduling
+celery==5.3.4
+redis==5.0.1  # Celery broker
+APScheduler==3.10.4
+
+# Monitoring and logging
+structlog==23.2.0
+loguru==0.7.2
+
+# System monitoring
+psutil==5.9.6
+
+# File handling and storage
+Pillow==10.1.0
+python-magic==0.4.27
+
+# Configuration and environment
+python-decouple==3.8
+
+# Development and testing
+pytest==7.4.3
+pytest-asyncio==0.21.1
+pytest-cov==4.1.0
+httpx==0.25.2  # For testing FastAPI
+
+# Code quality
+black==23.11.0
+isort==5.12.0
+flake8==6.1.0
+mypy==1.7.1
+
+# Documentation
+mkdocs==1.5.3
+mkdocs-material==9.4.8
+
+# Docker and deployment
+gunicorn==21.2.0
+
+# Geo-spatial data (if needed for location features)
+geopy==2.4.1
+
+# Excel/CSV processing
+openpyxl==3.1.2
+xlsxwriter==3.1.9
+
+# Image processing for product photos
+Pillow==10.1.0
+
+# Timezone handling
+pytz==2023.3
+
+# JSON Web Tokens
+PyJWT==2.8.0
+
+# CORS middleware
+fastapi-cors==0.0.6
+
+# Environment variable validation
+python-dotenv==1.0.0
+
+# Date/time utilities
+python-dateutil==2.8.2
+
+# UUID utilities
+shortuuid==1.0.11
+
+# Email sending
+smtplib-starttls-patch==1.1.0
+
+# Rate limiting
+slowapi==0.1.9
+
+# Prometheus metrics (optional)
+prometheus-client==0.19.0
+
+# Health checks
+py-healthcheck==1.10.1

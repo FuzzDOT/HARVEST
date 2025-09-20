@@ -1,0 +1,8 @@
+# Mock data for testing and development
+# Store sample/dummy data for testing purposes
+
+# Sample files that might be here:
+sample_weather.json
+sample_market_data.csv
+sample_crop_data.json
+mock_predictions.json

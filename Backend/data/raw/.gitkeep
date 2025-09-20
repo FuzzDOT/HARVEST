@@ -1,0 +1,16 @@
+# Raw data storage
+# Store original, unprocessed data files here
+# Examples: CSV files, JSON dumps, API responses
+
+# This directory should contain:
+# - weather_data/
+# - market_data/
+# - crop_data/
+# - soil_data/
+# - satellite_imagery/
+
+*.csv
+*.json
+*.xlsx
+*.zip
+*.tar.gz

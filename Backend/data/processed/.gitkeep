@@ -1,0 +1,14 @@
+# Processed data storage
+# Store cleaned, transformed, and feature-engineered data here
+# Examples: Preprocessed datasets, feature matrices, training data
+
+# This directory should contain:
+# - cleaned_datasets/
+# - feature_matrices/
+# - training_data/
+# - validation_data/
+
+*.parquet
+*.h5
+*.pkl
+*.npy
