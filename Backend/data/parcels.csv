@@ -1,0 +1,6 @@
+parcel_id,region,acreage,soil_ph,soil_type
+P1,MIDWEST,150,6.5,loam
+P2,MIDWEST,200,6.8,clay_loam
+P3,SOUTHEAST,120,6.2,sandy_loam
+P4,SOUTHEAST,180,6.7,silt_loam
+P5,MIDWEST,250,6.4,loam
