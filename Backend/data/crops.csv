@@ -1,0 +1,6 @@
+crop_id,name,growth_window_start,growth_window_end,ideal_temp_min,ideal_temp_max,ideal_rain_min,ideal_rain_max,base_yield_per_acre,cost_per_acre
+CORN,Corn,3,6,60,85,20,40,150,300
+SOYBEAN,Soybean,4,7,65,85,25,35,45,250
+WHEAT,Winter Wheat,9,11,50,75,15,30,60,200
+TOMATO,Tomato,4,6,65,80,15,25,25,400
+POTATO,Potato,3,5,55,70,20,30,300,350

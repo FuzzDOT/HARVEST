@@ -1,6 +1,0 @@
-# ML experiments and research
-# Store experiment logs, hyperparameter tuning results, and research notes
-
-experiment_logs/
-hyperparameter_results/
-research_notes.md
