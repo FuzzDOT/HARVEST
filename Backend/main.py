@@ -38,6 +38,8 @@ from src.model.ranker import (
 )
 from src.rules.crop_eligibility import filter_crops_by_month
 from src.utils.tables import format_recommendations_table
+from src.services import process_user_prediction_request, format_prediction_results
+from src.utils.sessions import session_manager
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -133,6 +135,77 @@ class AnnualPlanResponse(BaseModel):
     annual_summary: Dict[str, Any]
     rotation_sequence: List[Dict[str, Any]]
     generated_at: str
+
+
+# New models for frontend integration
+class LocationData(BaseModel):
+    latitude: float = Field(..., ge=-90, le=90, description="Latitude in decimal degrees")
+    longitude: float = Field(..., ge=-180, le=180, description="Longitude in decimal degrees")
+
+
+class UserPredictionRequest(BaseModel):
+    location: LocationData
+    timezone: str = Field(..., description="User's timezone (e.g., 'America/New_York')")
+    prediction_type: str = Field(..., pattern="^(short_term|long_term)$", description="Type of prediction")
+
+
+class PredictionResults(BaseModel):
+    session_id: str = Field(..., description="Session ID for accessing individual results")
+    
+    # Top 5 crop recommendations
+    cropName1: Optional[str] = None
+    cropName2: Optional[str] = None
+    cropName3: Optional[str] = None
+    cropName4: Optional[str] = None
+    cropName5: Optional[str] = None
+    
+    # Crop prices
+    cropPrice1: Optional[float] = None
+    cropPrice2: Optional[float] = None
+    cropPrice3: Optional[float] = None
+    cropPrice4: Optional[float] = None
+    cropPrice5: Optional[float] = None
+    
+    # Fertilizer names
+    fertilizerName1: Optional[str] = None
+    fertilizerName2: Optional[str] = None
+    fertilizerName3: Optional[str] = None
+    fertilizerName4: Optional[str] = None
+    fertilizerName5: Optional[str] = None
+    
+    # Fertilizer prices
+    fertilizerPrice1: Optional[float] = None
+    fertilizerPrice2: Optional[float] = None
+    fertilizerPrice3: Optional[float] = None
+    fertilizerPrice4: Optional[float] = None
+    fertilizerPrice5: Optional[float] = None
+    
+    # Images
+    image1: Optional[str] = None
+    image2: Optional[str] = None
+    image3: Optional[str] = None
+    image4: Optional[str] = None
+    image5: Optional[str] = None
+    
+    # Additional data for frontend
+    netProfit1: Optional[float] = None
+    netProfit2: Optional[float] = None
+    netProfit3: Optional[float] = None
+    netProfit4: Optional[float] = None
+    netProfit5: Optional[float] = None
+    
+    roiPercent1: Optional[float] = None
+    roiPercent2: Optional[float] = None
+    roiPercent3: Optional[float] = None
+    roiPercent4: Optional[float] = None
+    roiPercent5: Optional[float] = None
+    
+    confidence1: Optional[float] = None
+    confidence2: Optional[float] = None
+    confidence3: Optional[float] = None
+    confidence4: Optional[float] = None
+    confidence5: Optional[float] = None
+
 
 # Health check endpoint
 @app.get("/", tags=["Health"])
@@ -488,6 +561,105 @@ async def get_system_summary():
     except Exception as e:
         logger.error(f"System summary error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to generate system summary: {str(e)}")
+
+
+# Frontend Integration Endpoints
+@app.post("/api/v1/predict/location", response_model=PredictionResults, tags=["Frontend"])
+async def predict_for_location(request: UserPredictionRequest):
+    """
+    Generate top 5 crop-fertilizer combinations for user location and preferences.
+    
+    This endpoint is designed for frontend integration where users provide their location,
+    timezone, and prediction type to receive optimized agricultural recommendations.
+    """
+    try:
+        logger.info(f"Processing location-based prediction for {request.location.latitude}, {request.location.longitude}")
+        
+        # Process the request and get top 5 combinations
+        combinations = process_user_prediction_request(
+            location={"latitude": request.location.latitude, "longitude": request.location.longitude},
+            timezone=request.timezone,
+            prediction_type=request.prediction_type
+        )
+        
+        # Format results for frontend consumption
+        results = format_prediction_results(combinations)
+        
+        # Create session for individual result access
+        session_id = session_manager.create_session(results)
+        results['session_id'] = session_id
+        
+        logger.info(f"Successfully generated {len(combinations)} predictions for location, session: {session_id}")
+        return PredictionResults(**results)
+        
+    except ValueError as ve:
+        logger.error(f"Validation error in location prediction: {str(ve)}")
+        raise HTTPException(status_code=400, detail=str(ve))
+    except Exception as e:
+        logger.error(f"Location prediction error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to generate location-based predictions: {str(e)}")
+
+
+# Individual result endpoints for toggle functionality
+@app.get("/api/v1/results/crop/{session_id}/{index}", tags=["Frontend"])
+async def get_crop_name(
+    session_id: str = Path(..., description="Session ID from prediction request"),
+    index: int = Path(..., ge=1, le=5, description="Crop index (1-5)")
+):
+    """Get individual crop name by session and index."""
+    result = session_manager.get_result_by_index(session_id, "cropName", index)
+    if result is None:
+        raise HTTPException(status_code=404, detail="Session not found or expired")
+    return {"cropName": result, "index": index, "session_id": session_id}
+
+
+@app.get("/api/v1/results/price/{session_id}/{index}", tags=["Frontend"]) 
+async def get_crop_price(
+    session_id: str = Path(..., description="Session ID from prediction request"),
+    index: int = Path(..., ge=1, le=5, description="Crop index (1-5)")
+):
+    """Get individual crop price by session and index."""
+    result = session_manager.get_result_by_index(session_id, "cropPrice", index)
+    if result is None:
+        raise HTTPException(status_code=404, detail="Session not found or expired")
+    return {"cropPrice": result, "index": index, "session_id": session_id}
+
+
+@app.get("/api/v1/results/fertilizer/{session_id}/{index}", tags=["Frontend"])
+async def get_fertilizer_name(
+    session_id: str = Path(..., description="Session ID from prediction request"),
+    index: int = Path(..., ge=1, le=5, description="Fertilizer index (1-5)")
+):
+    """Get individual fertilizer name by session and index."""
+    result = session_manager.get_result_by_index(session_id, "fertilizerName", index)
+    if result is None:
+        raise HTTPException(status_code=404, detail="Session not found or expired")
+    return {"fertilizerName": result, "index": index, "session_id": session_id}
+
+
+@app.get("/api/v1/results/fertilizer-price/{session_id}/{index}", tags=["Frontend"])
+async def get_fertilizer_price(
+    session_id: str = Path(..., description="Session ID from prediction request"),
+    index: int = Path(..., ge=1, le=5, description="Fertilizer index (1-5)")
+):
+    """Get individual fertilizer price by session and index."""
+    result = session_manager.get_result_by_index(session_id, "fertilizerPrice", index)
+    if result is None:
+        raise HTTPException(status_code=404, detail="Session not found or expired")
+    return {"fertilizerPrice": result, "index": index, "session_id": session_id}
+
+
+@app.get("/api/v1/results/image/{session_id}/{index}", tags=["Frontend"])
+async def get_crop_image(
+    session_id: str = Path(..., description="Session ID from prediction request"),
+    index: int = Path(..., ge=1, le=5, description="Image index (1-5)")
+):
+    """Get individual crop image path by session and index."""
+    result = session_manager.get_result_by_index(session_id, "image", index)
+    if result is None:
+        raise HTTPException(status_code=404, detail="Session not found or expired")
+    return {"imagePath": result, "index": index, "session_id": session_id}
+
 
 # Error handlers
 @app.exception_handler(404)

@@ -7,7 +7,8 @@ from pathlib import Path
 from typing import Dict, Any, Optional
 from ..config import (
     CROPS_CSV, FERTILIZERS_CSV, PRICE_HISTORY_CSV,
-    WEATHER_NORMALS_CSV, WEATHER_FORECAST_CSV, PARCELS_CSV
+    WEATHER_NORMALS_CSV, WEATHER_FORECAST_CSV, PARCELS_CSV,
+    CROP_IMAGES_CSV, PROFIT_GRAPHS_CSV
 )
 
 
@@ -81,3 +82,35 @@ def get_latest_price(crop_id: str) -> Optional[float]:
     # Get the most recent price
     latest = crop_prices.sort_values(['year', 'month']).iloc[-1]
     return latest['price_per_unit']
+
+
+def load_crop_images() -> pd.DataFrame:
+    """Load crop image paths from CSV."""
+    return pd.read_csv(CROP_IMAGES_CSV)
+
+
+def load_profit_graphs() -> pd.DataFrame:
+    """Load profit graph paths from CSV."""
+    return pd.read_csv(PROFIT_GRAPHS_CSV)
+
+
+def get_crop_image_path(crop_id: str) -> Optional[str]:
+    """Get the image path for a specific crop."""
+    images = load_crop_images()
+    crop_image = images[images['crop_id'] == crop_id]
+    
+    if crop_image.empty:
+        return None
+    
+    return crop_image.iloc[0]['image_path']
+
+
+def get_profit_graph_path(crop_id: str) -> Optional[str]:
+    """Get the profit graph path for a specific crop."""
+    graphs = load_profit_graphs()
+    crop_graph = graphs[graphs['crop_id'] == crop_id]
+    
+    if crop_graph.empty:
+        return None
+    
+    return crop_graph.iloc[0]['profit_graph_path']

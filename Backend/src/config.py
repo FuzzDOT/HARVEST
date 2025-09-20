@@ -17,6 +17,8 @@ PRICE_HISTORY_CSV = DATA_DIR / "price_history.csv"
 WEATHER_NORMALS_CSV = DATA_DIR / "weather_monthly_normals.csv"
 WEATHER_FORECAST_CSV = DATA_DIR / "weather_forecast.csv"
 PARCELS_CSV = DATA_DIR / "parcels.csv"
+CROP_IMAGES_CSV = DATA_DIR / "crop_images.csv"
+PROFIT_GRAPHS_CSV = DATA_DIR / "profit_graphs.csv"
 
 # Output directories
 SHORT_TERM_OUTPUT_DIR = OUTPUTS_DIR / "short_term"
