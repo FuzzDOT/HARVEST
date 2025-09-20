@@ -1,0 +1,11 @@
+crop_id,crop_name,image_path
+CORN,Corn,/images/crops/corn.jpg
+SOYBEAN,Soybean,/images/crops/soybean.jpg
+WHEAT,Winter Wheat,/images/crops/wheat.jpg
+TOMATO,Tomato,/images/crops/tomato.jpg
+COTTON,Cotton,/images/crops/cotton.jpg
+POTATO,Potato,/images/crops/potato.jpg
+RICE,Rice,/images/crops/rice.jpg
+SUNFLOWER,Sunflower,/images/crops/sunflower.jpg
+BARLEY,Barley,/images/crops/barley.jpg
+OATS,Oats,/images/crops/oats.jpg

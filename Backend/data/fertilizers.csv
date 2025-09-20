@@ -1,0 +1,6 @@
+fertilizer_id,name,nitrogen_percent,phosphorus_percent,potassium_percent,price_per_lb,valid_months
+NPK_10_10_10,Balanced NPK,10,10,10,0.50,"1,2,3,4,5,6,7,8,9,10,11,12"
+UREA_46_0_0,Urea,46,0,0,0.45,"3,4,5,6,7,8,9"
+DAP_18_46_0,Diammonium Phosphate,18,46,0,0.65,"2,3,4,10,11"
+KCL_0_0_60,Potassium Chloride,0,0,60,0.40,"3,4,5,9,10,11"
+ORGANIC_5_3_3,Organic Compost,5,3,3,0.75,"1,2,3,4,5,6,7,8,9,10,11,12"
