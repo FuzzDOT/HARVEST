@@ -234,11 +234,11 @@ function Details() {
                 <p style={styles.p}>
                     Harvest helps land owners choose the most profitable crops using soil, ground profile, local pricing, and
                     weather. The short-term view recommends monthly actions; the long-term view plans the next year using 10-year
-                    weather normals.
+                    weather averages.
                 </p>
                 <ul style={styles.list}>
-                    <li>Short-term: immediate actions for this month</li>
-                    <li>Long-term: 12-month plan using historical climate</li>
+                    <li>Short-term: immediate actions for this month to maximize for a smaller time period</li>
+                    <li>Long-term: 12-month plan using historical climate data for a longer time period</li>
                     <li>Inputs: location, soil, ground type, budget</li>
                     <li>Outputs: crop recommendations, expected yield & margin</li>
                 </ul>
@@ -265,7 +265,7 @@ function Details() {
             </section>
 
             <section style={styles.section}>
-                <h2 style={styles.h2}>Tech & Status</h2>
+                <h2 style={styles.h2}>Tech</h2>
                 <div style={styles.kvRow}>
                     <div style={styles.kv}>
                         <span style={styles.k}>Frontend</span>
@@ -280,7 +280,6 @@ function Details() {
                         <span>Weather, crops, prices, soils</span>
                     </div>
                 </div>
-                <p style={styles.p}>Demo screens are read-only for now; Explore shows a results layout. Backend wiring comes next.</p>
             </section>
 
             <footer style={styles.footer}>
@@ -373,15 +372,15 @@ function ResultsScreen({
                                 <div style={styles.statValue}>$5,000</div>
                                 <div style={styles.statLabel}>Expected Revenue (in {prettyLocation || "your area"})</div>
                             </div>
-                            <div style={styles.metricCardAccent}>
-                                <div style={{ ...styles.statValue, color: "#1f2937" }}>$2,000</div>
-                                <div style={{ ...styles.statLabel, color: "rgba(31,41,55,.92)" }}>
-                                    Predicted Margin — {prettyPrice}
-                                </div>
-                            </div>
                             <div style={styles.metricCard}>
                                 <div style={styles.statValue}>$3,000</div>
                                 <div style={styles.statLabel}>Estimated Cost ({prettySoil})</div>
+                            </div>
+                            <div style={styles.metricCardAccent}>
+                                <div style={{ ...styles.statValue, color: "#fff" }}>$2,000</div>
+                                <div style={{ ...styles.statLabel, color: "rgba(255,255,255,.9)" }}>
+                                    Predicted Margin — {prettyPrice}
+                                </div>
                             </div>
                         </div>
 
