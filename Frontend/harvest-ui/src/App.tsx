@@ -1,14 +1,55 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import scytheLogo from "./assets/scythewheatlogo.png";
 import vineSrc from "./assets/vine.png"; // splash (hero) background vine
 import resultsBgSrc from "./assets/vines2.png"; // ← OPTIONAL: your explore page background image
+
+// --- Crop images (local assets) ---
+import wheatImg  from "./assets/crops/Wheat.png";
+import carrotImg  from "./assets/crops/Carrot.png";
+import cornImg   from "./assets/crops/Corn.png";
+import riceImg   from "./assets/crops/Rice.png";
+import soyImg    from "./assets/crops/Soy.png";
+import onionImg    from "./assets/crops/Onion.png";
+import barleyImg from "./assets/crops/Barley.png";
+import potatoImg from "./assets/crops/Potato.png";
+import tomatoImg from "./assets/crops/Tomato.png";
+import alfalfaImg from "./assets/crops/Alfalfa.png";
+import cottonImg from "./assets/crops/Cotton.png";
+import fallbackImg from "./assets/crops/Wheatwinter.png"; // generic photo
+
+const CROP_IMAGE: Record<string, string> = {
+    wheat: wheatImg,
+    carrot:carrotImg,
+    corn: cornImg,
+    maize: cornImg,       // alias
+    rice: riceImg,
+    soy: soyImg,
+    onion: onionImg,
+    soybean: soyImg,      // alias
+    barley: barleyImg,
+    potato: potatoImg,
+    tomato: tomatoImg,
+    alfalfa: alfalfaImg,
+    cotton: cottonImg,
+};
+
+function getCropImage(name: string): string {
+    const key = (name || "").trim().toLowerCase();
+    if (CROP_IMAGE[key]) return CROP_IMAGE[key];
+    const singular = key.endsWith("s") ? key.slice(0, -1) : key;
+    return CROP_IMAGE[singular] || fallbackImg;
+}
 
 const ACCENT_FROM = "#d3b78e"; // warm gold
 const ACCENT_TO   = "#b38d43"; // deeper amber
 const ACCENT_MUTED_FROM = "#c6b287"; // disabled/muted gold
 const ACCENT_MUTED_TO   = "#d8c296";
 
-type FieldKey = "state" | "startMonth" | "initialInvestment" | "landSqft";
+// Backend base URL (set VITE_API_BASE in your .env if you want to override)
+const API_BASE = (import.meta as any)?.env?.VITE_API_BASE ?? "https://harvest-5ub4.onrender.com";
+
+// ★ Added "planType"
+type FieldKey = "state" | "startMonth" | "initialInvestment" | "landSqft" | "planType";
 type Errors = Partial<Record<FieldKey, string>>;
 
 const US_STATES = [
@@ -20,15 +61,35 @@ const US_STATES = [
     "West Virginia","Wisconsin","Wyoming"
 ];
 
+// === State → ParcelId mapping (Alabama=P1, Alaska=P2, ... in the order above) ===
+const STATE_TO_PARCEL: Record<string, string> = US_STATES.reduce((acc, name, idx) => {
+    acc[name] = `P${idx + 1}`; // <- start at 1
+    return acc;
+}, {} as Record<string, string>);
+
 const MONTHS = [
     "January","February","March","April","May","June","July","August","September","October","November","December"
 ];
+
+// tiny helpers
+const titleCase = (s: string) =>
+    s ? s.replace(/\w\S*/g, (w) => w[0].toUpperCase() + w.slice(1).toLowerCase()) : s;
+
+const monthToNumber = (name: string) => {
+    const idx = MONTHS.findIndex(m => m.toLowerCase() === name.toLowerCase());
+    return idx >= 0 ? idx + 1 : 1;
+};
+
+const currency = (n: number) =>
+    new Intl.NumberFormat(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
 
 export default function App() {
     const [stateUS, setStateUS] = useState("");
     const [startMonth, setStartMonth] = useState("");
     const [initialInvestment, setInitialInvestment] = useState("");
     const [landSqft, setLandSqft] = useState("");
+    // ★ New: plan type (required): "short_term" | "long_term"
+    const [planType, setPlanType] = useState("");
 
     const [errors, setErrors] = useState<Errors>({});
     const [showResults, setShowResults] = useState(false);
@@ -38,6 +99,7 @@ export default function App() {
         if (key === "startMonth") setStartMonth(value);
         if (key === "initialInvestment") setInitialInvestment(value);
         if (key === "landSqft") setLandSqft(value);
+        if (key === "planType") setPlanType(value);
 
         if (value && errors[key]) {
             setErrors((prev) => {
@@ -48,11 +110,12 @@ export default function App() {
     };
 
     const focusFirstError = (errs: Errors) => {
-        const order: FieldKey[] = ["state", "startMonth", "initialInvestment", "landSqft"];
+        // ★ Include planType in focus order (first in list feels natural)
+        const order: FieldKey[] = ["planType", "state", "startMonth", "initialInvestment", "landSqft"];
         const first = order.find((k) => errs[k]);
         if (!first) return;
         setTimeout(() => {
-            const el = document.getElementById(first) as HTMLInputElement | null;
+            const el = document.getElementById(first) as HTMLInputElement | HTMLSelectElement | null;
             if (el) {
                 el.scrollIntoView({ behavior: "smooth", block: "center" });
                 el.focus();
@@ -62,6 +125,7 @@ export default function App() {
 
     const handleExplore = () => {
         const nextErrors: Errors = {};
+        if (!planType) nextErrors.planType = "Required";
         if (!stateUS.trim()) nextErrors.state = "Required";
         if (!startMonth) nextErrors.startMonth = "Required";
         if (!initialInvestment) nextErrors.initialInvestment = "Required";
@@ -109,6 +173,7 @@ export default function App() {
                     startMonth={startMonth}
                     initialInvestment={initialInvestment}
                     landSqft={landSqft}
+                    planType={planType}
                     resultsBgSrc={resultsBgSrc}
                 />
             ) : (
@@ -119,6 +184,7 @@ export default function App() {
                         startMonth={startMonth}
                         initialInvestment={initialInvestment}
                         landSqft={landSqft}
+                        planType={planType}
                         setField={setField}
                         onExplore={handleExplore}
                         errors={errors}
@@ -136,11 +202,12 @@ function Hero(props: {
     startMonth: string;
     initialInvestment: string;
     landSqft: string;
+    planType: string;
     setField: (key: FieldKey, value: string) => void;
     onExplore: () => void;
     errors: Errors;
 }) {
-    const { scytheLogo, stateUS, startMonth, initialInvestment, landSqft, setField, onExplore, errors } = props;
+    const { scytheLogo, stateUS, startMonth, initialInvestment, landSqft, planType, setField, onExplore, errors } = props;
 
     return (
         <header style={styles.hero}>
@@ -154,6 +221,22 @@ function Hero(props: {
                 </div>
 
                 <div style={styles.form}>
+                    {/* ★ Plan Type */}
+                    <label style={styles.label} htmlFor="planType">
+                        Plan Type {errors.planType && <span style={styles.errorText}>{errors.planType}</span>}
+                    </label>
+                    <select
+                        id="planType"
+                        style={{ ...styles.input, ...(errors.planType ? styles.inputError : {}) }}
+                        aria-invalid={Boolean(errors.planType)}
+                        value={planType}
+                        onChange={(e) => setField("planType", e.target.value)}
+                    >
+                        <option value="" disabled>Select plan</option>
+                        <option value="short_term">Short-term (monthly actions)</option>
+                        <option value="long_term">Long-term (12-month plan)</option>
+                    </select>
+
                     {/* State */}
                     <label style={styles.label} htmlFor="state">
                         State {errors.state && <span style={styles.errorText}>{errors.state}</span>}
@@ -296,6 +379,14 @@ function Details() {
     );
 }
 
+type PlanOption = {
+    id: string;                 // local id/index for select value
+    label: string;              // human label shown in select
+    crop: string;               // crop name
+    baseYield: number | null;   // value used for revenue formula
+    fertilizerUsed: string | null; // NEW: fertilizer_used for this recommendation
+};
+
 function ResultsScreen({
                            onBack,
                            errors,
@@ -304,7 +395,8 @@ function ResultsScreen({
                            startMonth,
                            initialInvestment,
                            landSqft,
-                           resultsBgSrc,            // ← NEW (optional): image to show behind cards
+                           planType,
+                           resultsBgSrc,
                        }: {
     onBack: () => void;
     errors: Errors;
@@ -313,17 +405,220 @@ function ResultsScreen({
     startMonth: string;
     initialInvestment: string;
     landSqft: string;
-    resultsBgSrc?: string;    // ← NEW (optional)
+    planType: string;
+    resultsBgSrc?: string;
 }) {
     const missing = Object.keys(errors) as FieldKey[];
     const prettyState = stateUS.trim();
     const prettyMonth = startMonth;
     const prettyInvestment = initialInvestment;
     const prettyLand = landSqft ? Number(landSqft).toLocaleString() : "";
+    const acres = landSqft ? Number(landSqft) / 43560 : 0;
+    const prettyPlan =
+        planType === "short_term" ? "Short-term" :
+            planType === "long_term" ? "Long-term" : "";
+
+    // Predicted crop & base yield from backend
+    const [predictedCrop, setPredictedCrop] = useState<string>("Wheat");
+    const [predictedBaseYield, setPredictedBaseYield] = useState<number | null>(null);
+    const [loading, setLoading] = useState(false);
+    const [apiError, setApiError] = useState<string | null>(null);
+
+    // Plans from backend + selection
+    const [plans, setPlans] = useState<PlanOption[]>([]);
+    const [selectedPlanIndex, setSelectedPlanIndex] = useState<number | null>(null);
+
+    // helper to safely coerce a number-looking field
+    const num = (v: any): number | null => {
+        const n = typeof v === "string" ? Number(v) : typeof v === "number" ? v : NaN;
+        return Number.isFinite(n) ? n : null;
+    };
+
+    // pull a base-yield-like value from a recommendation object (be tolerant to field names)
+    const extractBaseYield = (obj: any): number | null => {
+        if (!obj || typeof obj !== "object") return null;
+        return (
+            num(obj.profit_per_acre) ??
+            num(obj.expected_yield) ??
+            num(obj.yield_per_acre) ??
+            num(obj.yield_lb_per_acre) ??
+            num(obj.yield) ??
+            null
+        );
+    };
+
+    const extractFertilizer = (obj: any): string | null => {
+        if (!obj || typeof obj !== "object") return null;
+        // Try common keys
+        return (
+            (typeof obj.fertilizer_used === "string" && obj.fertilizer_used) ||
+            (typeof obj.fertilizer === "string" && obj.fertilizer) ||
+            (typeof obj.recommended_fertilizer === "string" && obj.recommended_fertilizer) ||
+            null
+        );
+    };
+
+    useEffect(() => {
+        let cancelled = false;
+        async function fetchPrediction() {
+            setLoading(true);
+            setApiError(null);
+
+            const parcelId = STATE_TO_PARCEL[prettyState] || "P1";
+            const monthNum = monthToNumber(prettyMonth || "January");
+
+            try {
+                if (planType === "short_term") {
+                    const payload = {
+                        parcel_id: parcelId,
+                        month: monthNum,
+                        top_n: 5,
+                        ranking_method: "profit",
+                        min_confidence: 60,
+                    };
+
+                    console.groupCollapsed("🌾 HARVEST API → /api/v1/predict/month");
+                    console.log("Request payload:", payload);
+
+                    const res = await fetch(`${API_BASE}/api/v1/predict/month`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(payload),
+                    });
+                    console.log("HTTP status:", res.status);
+
+                    const text = await res.text();
+                    let json: any = null;
+                    try { json = text ? JSON.parse(text) : {}; } catch {
+                        console.warn("Non-JSON response body:", text);
+                    }
+                    console.log("Response body:", json ?? text);
+
+                    if (!res.ok) {
+                        console.groupEnd();
+                        throw new Error(text || `Request failed with status ${res.status}`);
+                    }
+
+                    const recs = Array.isArray(json?.recommendations) ? json.recommendations : [];
+                    const planOptions: PlanOption[] = recs.map((r: any, i: number) => ({
+                        id: String(i),
+                        label: `${i + 1}: ${titleCase(r?.crop_name ?? `Option ${i + 1}`)}`,
+                        crop: titleCase(r?.crop_name ?? "Unknown"),
+                        baseYield: extractBaseYield(r),
+                        fertilizerUsed: extractFertilizer(r),
+                    }));
+
+                    if (!cancelled) {
+                        setPlans(planOptions);
+                        if (planOptions.length > 0) {
+                            setSelectedPlanIndex(0);
+                            setPredictedCrop(planOptions[0].crop);
+                            setPredictedBaseYield(planOptions[0].baseYield ?? null);
+                        } else {
+                            setSelectedPlanIndex(null);
+                            setPredictedBaseYield(null);
+                        }
+                    }
+                    console.groupEnd();
+                } else if (planType === "long_term") {
+                    const payload = {
+                        parcel_id: parcelId,
+                        start_month: monthNum,
+                        diversification_bonus: 0.1,
+                        min_profit_threshold: 0,
+                    };
+
+                    console.groupCollapsed("🌾 HARVEST API → /api/v1/plan/annual");
+                    console.log("Request payload:", payload);
+
+                    const res = await fetch(`${API_BASE}/api/v1/plan/annual`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(payload),
+                    });
+                    console.log("HTTP status:", res.status);
+
+                    const text = await res.text();
+                    let json: any = null;
+                    try { json = text ? JSON.parse(text) : {}; } catch {
+                        console.warn("Non-JSON response body:", text);
+                    }
+                    console.log("Response body:", json ?? text);
+
+                    if (!res.ok) {
+                        console.groupEnd();
+                        throw new Error(text || `Request failed with status ${res.status}`);
+                    }
+
+                    const seq = Array.isArray(json?.rotation_sequence) ? json.rotation_sequence : [];
+                    const planOptions: PlanOption[] = seq.map((r: any, i: number) => {
+                        const cropName = r?.recommended_crop ?? r?.crop_name ?? `Option ${i + 1}`;
+                        const monthLabel = typeof r?.month === "number" && r.month >= 1 && r.month <= 12
+                            ? ` (${MONTHS[r.month - 1]})` : "";
+                        return {
+                            id: String(i),
+                            label: `${i + 1}: ${titleCase(cropName)}${monthLabel}`,
+                            crop: titleCase(cropName),
+                            baseYield: extractBaseYield(r) ?? extractBaseYield(json) ?? null,
+                            fertilizerUsed: extractFertilizer(r),
+                        };
+                    });
+
+                    if (!cancelled) {
+                        setPlans(planOptions);
+                        if (planOptions.length > 0) {
+                            setSelectedPlanIndex(0);
+                            setPredictedCrop(planOptions[0].crop);
+                            setPredictedBaseYield(planOptions[0].baseYield ?? null);
+                        } else {
+                            setSelectedPlanIndex(null);
+                            setPredictedBaseYield(null);
+                        }
+                    }
+                    console.groupEnd();
+                }
+            } catch (e: any) {
+                console.error("🌾 HARVEST API error:", e);
+                if (!cancelled) setApiError(e?.message ?? "Failed to load predictions");
+                if (!cancelled) {
+                    setPlans([]);
+                    setSelectedPlanIndex(null);
+                    setPredictedBaseYield(null);
+                }
+            } finally {
+                if (!cancelled) setLoading(false);
+            }
+        }
+
+        if (planType && prettyState && prettyMonth) {
+            fetchPrediction();
+        } else {
+            setPlans([]);
+            setSelectedPlanIndex(null);
+            setPredictedBaseYield(null);
+        }
+        return () => { cancelled = true; };
+    }, [planType, prettyState, prettyMonth]);
+
+    // When user switches plan in the select, reflect that everywhere
+    const onPlanSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const idx = Number(e.target.value);
+        setSelectedPlanIndex(Number.isFinite(idx) ? idx : null);
+        const chosen = Number.isFinite(idx) ? plans[idx] : null;
+        if (chosen) {
+            setPredictedCrop(chosen.crop);
+            setPredictedBaseYield(chosen.baseYield ?? null);
+        }
+    };
+
+    // Expected Revenue = (sqft / 43,560) * (base yield from backend)
+    const expectedRevenue = predictedBaseYield != null ? acres * predictedBaseYield : null;
+
+    const selectedPlan = (selectedPlanIndex != null && plans[selectedPlanIndex]) ? plans[selectedPlanIndex] : null;
 
     return (
         <main id="results" style={styles.resultsWrap}>
-            {/* --- NEW: background image & readability overlay --- */}
+            {/* --- background image & readability overlay --- */}
             {resultsBgSrc && <img src={resultsBgSrc} alt="" aria-hidden="true" style={styles.resultsBgImg} />}
             <div style={styles.resultsBgOverlay} />
 
@@ -335,8 +630,8 @@ function ResultsScreen({
                     <div style={styles.headerTitleWrap}>
                         <h1 style={styles.headerTitle}>Recommendations</h1>
                         <span style={styles.headerSubtitle}>
-              {prettyState || prettyMonth || prettyInvestment || prettyLand
-                  ? `Based on ${prettyState || "your state"} • Start: ${prettyMonth || "—"} • Land: ${prettyLand || "—"} sqft • Investment: ${prettyInvestment || "—"}`
+              {prettyState || prettyMonth || prettyInvestment || prettyLand || prettyPlan
+                  ? `Plan: ${prettyPlan || "—"} • ${prettyState || "your state"} • Start: ${prettyMonth || "—"} • Land: ${prettyLand || "—"} sqft • Investment: ${prettyInvestment || "—"}`
                   : "Based on your inputs"}
             </span>
                     </div>
@@ -363,45 +658,53 @@ function ResultsScreen({
                     <section style={styles.mainCol}>
                         <div style={styles.heroPanel}>
                             <div style={styles.heroLeft}>
-                                <div style={styles.cropBadge}>WHEAT</div>
+                                <div style={styles.cropBadge}>{predictedCrop.toUpperCase()}</div>
                                 <h2 style={styles.heroTitle}>Optimal Plan — {prettyMonth || "Month"}</h2>
                                 <p style={styles.heroDesc}>
-                                    {`High margin • 30–45 day cycle • ${prettyState || "US"} • ${prettyLand ? prettyLand + " sqft" : "land TBD"}`}
+                                    {`${prettyPlan || "Plan TBD"} • High margin • 30–45 day cycle • ${prettyState || "US"} • ${prettyLand ? prettyLand + " sqft" : "land TBD"}`}
                                 </p>
                                 <div style={styles.heroChips}>
+                                    {prettyPlan && <span style={styles.chip}>{prettyPlan}</span>}
                                     {prettyState && <span style={styles.chip}>{prettyState}</span>}
                                     {prettyMonth && <span style={styles.chip}>Start: {prettyMonth}</span>}
                                     {prettyLand && <span style={styles.chip}>{prettyLand} sqft</span>}
                                     {prettyInvestment && <span style={styles.chip}>Investment: {prettyInvestment}</span>}
+                                    {loading && <span style={styles.chip}>Loading…</span>}
+                                    {apiError && <span style={{...styles.chip, color:"#b91c1c", borderColor:"rgba(185,28,28,.35)"}}>API error</span>}
                                 </div>
                             </div>
                             <div style={styles.heroRight}>
-                                <div style={styles.cropImgBig}>Image</div>
+                                <div style={styles.cropImgBig}>
+                                    <img
+                                        src={getCropImage(predictedCrop)}
+                                        alt={predictedCrop || "Crop"}
+                                        style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: 16 }}
+                                        loading="lazy"
+                                        onError={(e) => { console.warn("Image failed:", predictedCrop, (e.target as HTMLImageElement).src); }}
+                                    />
+                                </div>
                             </div>
                         </div>
 
                         <div style={styles.metricsRow}>
-                            <div style={styles.metricCard}>
-                                <div style={styles.statValue}>$5,000</div>
-                                <div style={styles.statLabel}>Expected Revenue ({prettyState || "your area"})</div>
-                            </div>
-                            <div style={styles.metricCard}>
-                                <div style={styles.statValue}>$3,000</div>
-                                <div style={styles.statLabel}>Estimated Cost (setup)</div>
-                            </div>
                             <div style={styles.metricCardAccent}>
-                                <div style={{ ...styles.statValue, color: "#fff" }}>$2,000</div>
-                                <div style={{ ...styles.statLabel, color: "rgba(255,255,255,.9)" }}>
-                                    Predicted Margin — {prettyInvestment || "—"}
+                                <div style={styles.statValue}>
+                                    {expectedRevenue != null ? currency(expectedRevenue) : "—"}
+                                </div>
+                                <div style={styles.statLabel}>
+                                    Expected Revenue ({prettyState || "your area"})
                                 </div>
                             </div>
                         </div>
-
-                        <div style={styles.chartPanel}>Chart</div>
                     </section>
 
                     <aside style={styles.sidebarGlass}>
-                        <h3 style={{ marginTop: 0, marginBottom: 12, color: "#0f172a" }}>Filters</h3>
+                        <h3 style={{ marginTop: 0, marginBottom: 12, color: "#0f172a" }}>Results</h3>
+
+                        <div style={styles.filterGroup}>
+                            <label style={styles.filterLabel}>Plan Type</label>
+                            <div>{prettyPlan || "—"}</div>
+                        </div>
 
                         <div style={styles.filterGroup}>
                             <label style={styles.filterLabel}>State</label>
@@ -423,33 +726,36 @@ function ResultsScreen({
                             <div>{prettyInvestment || "—"}</div>
                         </div>
 
-                        {/* demo filters preserved */}
+                        {/* ★★ Plans from backend recommendations */}
                         <div style={styles.filterGroup}>
                             <label style={styles.filterLabel}>Plan</label>
-                            <select style={styles.select}>
-                                <option>Plan 1</option>
-                                <option>Plan 2</option>
+                            <select
+                                style={styles.select}
+                                value={selectedPlanIndex ?? ""}
+                                onChange={onPlanSelectChange}
+                                disabled={plans.length === 0}
+                            >
+                                {plans.length === 0 ? (
+                                    <option value="">No plans available</option>
+                                ) : (
+                                    plans.map((p, i) => (
+                                        <option key={p.id} value={i}>
+                                            {p.label}
+                                        </option>
+                                    ))
+                                )}
                             </select>
                         </div>
+
                         <div style={styles.filterGroup}>
                             <label style={styles.filterLabel}>Crop Type</label>
-                            <div>Wheat</div>
+                            <div>{predictedCrop}</div>
                         </div>
-                        <div style={styles.filterGroup}>
-                            <label style={styles.filterLabel}>Price Per Bag</label>
-                            <div>$25</div>
-                        </div>
-                        <div style={styles.filterGroup}>
-                            <label style={styles.filterLabel}>Instructions</label>
-                            <div>Plant in early spring, irrigate weekly.</div>
-                        </div>
+
+                        {/* ★★ NEW: show fertilizer for selected plan */}
                         <div style={styles.filterGroup}>
                             <label style={styles.filterLabel}>Fertilizer Type</label>
-                            <div>Organic Mix</div>
-                        </div>
-                        <div style={styles.filterGroup}>
-                            <label style={styles.filterLabel}>Price Per Pound</label>
-                            <div>$2.50</div>
+                            <div>{selectedPlan?.fertilizerUsed ?? "—"}</div>
                         </div>
                     </aside>
                 </div>
@@ -578,7 +884,6 @@ const styles: Record<string, React.CSSProperties> = {
         color: "white",
         fontSize: 16,
         fontWeight: 800,
-        cursor: "pointer",
     },
     ctaDisabled: {
         opacity: 0.55,
@@ -661,10 +966,9 @@ const styles: Record<string, React.CSSProperties> = {
     resultsWrap: {
         minHeight: "100vh",
         background: "linear-gradient(135deg, #f6f8fb 0%, #eef2f7 50%, #e9eef5 100%)",
-        position: "relative",     // ← allow absolutely-positioned bg layers
+        position: "relative",
         overflow: "hidden",
     },
-    // NEW: image behind the cards
     resultsBgImg: {
         position: "absolute",
         right: "11vw",
@@ -679,7 +983,6 @@ const styles: Record<string, React.CSSProperties> = {
         filter: "saturate(0.9) contrast(0.95)",
         mixBlendMode: "multiply",
     } as React.CSSProperties,
-    // NEW: subtle overlay to keep content readable over bright images
     resultsBgOverlay: {
         position: "absolute",
         inset: 0,
@@ -693,7 +996,7 @@ const styles: Record<string, React.CSSProperties> = {
         maxWidth: "1200px",
         margin: "0 auto",
         position: "relative",
-        zIndex: 2, // above bg + overlay
+        zIndex: 2,
     },
     resultsHeader: {
         position: "sticky",
@@ -867,14 +1170,14 @@ const styles: Record<string, React.CSSProperties> = {
 
     metricsRow: {
         display: "grid",
-        gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-        gap: 16,
+        gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+        gap: 64,
         alignItems: "end",
     },
     metricCard: {
         padding: 18,
-        borderRadius: 20,
-        background: "rgba(255,255,255,.9)",
+        borderRadius: 40,
+        background: `linear-gradient(135deg, ${ACCENT_FROM}, ${ACCENT_TO})`,
         border: "1px solid rgba(15,23,42,.06)",
         boxShadow: "0 12px 32px rgba(2,6,23,.08)",
     },
