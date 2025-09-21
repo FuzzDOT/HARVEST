@@ -2,6 +2,7 @@
 Profit calculations for crop recommendations.
 """
 
+import pandas as pd
 from typing import Dict, Any, Optional
 from .yield_penalty import calculate_adjusted_yield, calculate_total_yield_penalty
 from ..io_.loaders import get_latest_price
@@ -26,9 +27,9 @@ def calculate_gross_revenue(
         Gross revenue per acre
     """
     if price_per_unit is None:
-        price_per_unit = get_latest_price(crop['crop_id'])
+        price_per_unit = get_latest_price(crop['crop_name'])
         if price_per_unit is None:
-            raise ValueError(f"No price data available for crop {crop['crop_id']}")
+            raise ValueError(f"No price data available for crop {crop['crop_name']}")
     
     return adjusted_yield * price_per_unit
 
@@ -49,7 +50,20 @@ def calculate_production_costs(
     Returns:
         Dictionary with cost breakdown
     """
-    base_cost = crop['cost_per_acre']
+    # Estimate base cost per acre if not provided
+    # Use category-based estimates (these could be made more sophisticated)
+    if 'cost_per_acre' in crop:
+        base_cost = crop['cost_per_acre']
+    else:
+        # Default cost estimates by crop category (USD per acre)
+        cost_estimates = {
+            'grain': 500,     # corn, wheat, rice
+            'legume': 400,    # peanuts, soybeans
+            'fiber': 600,     # cotton
+            'vegetable': 800  # general vegetables
+        }
+        category = crop.get('category', 'grain')
+        base_cost = cost_estimates.get(category, 500)
     
     fertilizer_cost = 0.0
     if fertilizer:
@@ -66,7 +80,7 @@ def calculate_production_costs(
 
 def calculate_net_profit(
     crop: Dict[str, Any],
-    weather_conditions: Dict[str, float],
+    weather_conditions: pd.DataFrame,
     soil_conditions: Dict[str, float],
     month: int,
     price_per_unit: Optional[float] = None,
@@ -92,7 +106,7 @@ def calculate_net_profit(
     )
     
     adjusted_yield = calculate_adjusted_yield(
-        crop['base_yield_per_acre'], penalty_factors
+        crop['yield_lb_per_acre_est'], penalty_factors
     )
     
     # Get best fertilizer for this crop and month
@@ -108,9 +122,8 @@ def calculate_net_profit(
     net_profit = revenue - costs['total_cost']
     
     return {
-        'crop_id': crop['crop_id'],
-        'crop_name': crop['name'],
-        'base_yield': crop['base_yield_per_acre'],
+        'crop_name': crop['crop_name'],
+        'base_yield': crop['yield_lb_per_acre_est'],
         'adjusted_yield': adjusted_yield,
         'yield_penalty_factors': penalty_factors,
         'gross_revenue': revenue,
@@ -118,8 +131,8 @@ def calculate_net_profit(
         'net_profit': net_profit,
         'profit_per_acre': net_profit,
         'roi_percent': (net_profit / costs['total_cost']) * 100 if costs['total_cost'] > 0 else 0,
-        'fertilizer_used': fertilizer['name'] if fertilizer else None,
-        'price_per_unit': price_per_unit or get_latest_price(crop['crop_id'])
+        'fertilizer_used': fertilizer['fertilizer_name'] if fertilizer else None,
+        'price_per_unit': price_per_unit or get_latest_price(crop['crop_name'])
     }
 
 
@@ -155,11 +168,24 @@ def calculate_break_even_yield(
         Break-even yield per acre
     """
     if price_per_unit is None:
-        price_per_unit = get_latest_price(crop['crop_id'])
+        price_per_unit = get_latest_price(crop['crop_name'])
         if price_per_unit is None:
-            raise ValueError(f"No price data available for crop {crop['crop_id']}")
+            raise ValueError(f"No price data available for crop {crop['crop_name']}")
     
-    base_cost = crop['cost_per_acre']
+    # Use estimated cost per acre based on category if not available
+    if 'cost_per_acre' in crop:
+        base_cost = crop['cost_per_acre']
+    else:
+        # Estimate cost per acre based on crop category
+        cost_estimates = {
+            'grain': 400,
+            'vegetable': 600, 
+            'fruit': 800,
+            'cash_crop': 500,
+            'legume': 300
+        }
+        base_cost = cost_estimates.get(crop.get('category', 'grain'), 400)
+    
     return base_cost / price_per_unit
 
 
@@ -218,11 +244,9 @@ def calculate_annual_profit_potential(
     worst_month = min(monthly_profits, key=lambda x: x['net_profit']) if monthly_profits else None
     
     return {
-        'total_annual_profit_per_acre': total_annual_profit,
-        'total_farm_profit': total_farm_profit,
-        'average_monthly_profit': average_monthly_profit,
-        'best_month_crop': best_month['crop_name'] if best_month else None,
-        'best_month_profit': best_month['net_profit'] if best_month else 0,
-        'worst_month_crop': worst_month['crop_name'] if worst_month else None,
-        'worst_month_profit': worst_month['net_profit'] if worst_month else 0
+        'total_annual_profit_per_acre': float(total_annual_profit),
+        'total_farm_profit': float(total_farm_profit),
+        'average_monthly_profit': float(average_monthly_profit),
+        'best_month_profit': float(best_month['net_profit']) if best_month else 0.0,
+        'worst_month_profit': float(worst_month['net_profit']) if worst_month else 0.0
     }
