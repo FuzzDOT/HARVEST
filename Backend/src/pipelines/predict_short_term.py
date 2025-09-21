@@ -9,7 +9,7 @@ from datetime import datetime
 from ..io_.loaders import load_parcel_by_id, load_weather_forecast
 from ..rules.crop_eligibility import filter_crops_by_month
 from ..model.profit_calc import calculate_net_profit
-from ..model.ranker import rank_crops_by_profit, get_top_n_recommendations
+from ..model.ranker import rank_crops_by_profit, get_diverse_top_n_recommendations
 from ..io_.writers import save_short_term_recommendations
 from ..config import MIN_WEATHER_CONFIDENCE
 
@@ -86,8 +86,8 @@ def predict_month_recommendations(
             'message': 'No profitable crops found for the given conditions'
         }
     
-    # Get top recommendations
-    top_recommendations = get_top_n_recommendations(
+    # Get top recommendations with diversity
+    top_recommendations = get_diverse_top_n_recommendations(
         profit_calculations, n=top_n, ranking_method=ranking_method
     )
     

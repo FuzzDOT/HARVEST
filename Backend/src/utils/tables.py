@@ -20,16 +20,22 @@ def format_recommendations_table(recommendations: List[Dict[str, Any]]) -> str:
         return "No recommendations available."
     
     # Prepare table data
-    headers = ["Rank", "Crop", "Profit/Acre", "ROI %", "Yield", "Confidence %"]
+    headers = ["Rank", "Crop", "Profit/Acre", "ROI %", "Yield", "Fertilizer", "Confidence %"]
     rows = []
     
     for rec in recommendations:
+        fertilizer = rec.get('fertilizer_used', 'None')
+        # Truncate long fertilizer names for better table formatting
+        if fertilizer and len(fertilizer) > 20:
+            fertilizer = fertilizer[:17] + "..."
+        
         rows.append([
             rec.get('rank', '?'),
             rec.get('crop_name', 'Unknown'),
             f"${rec.get('net_profit', 0):.2f}",
             f"{rec.get('roi_percent', 0):.1f}%",
             f"{rec.get('adjusted_yield', 0):.1f}",
+            fertilizer or 'None',
             f"{rec.get('recommendation_confidence', 0):.1f}%"
         ])
     
