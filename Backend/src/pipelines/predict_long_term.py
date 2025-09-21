@@ -9,6 +9,7 @@ from datetime import datetime
 from ..io_.loaders import load_parcel_by_id, load_weather_normals
 from ..rules.crop_eligibility import filter_crops_by_month_and_region
 from ..model.profit_calc import calculate_net_profit, calculate_annual_profit_potential
+from ..model.confidence import calculate_recommendation_confidence
 from ..model.ranker import rank_crops_by_profit, apply_diversification_scoring
 from ..io_.writers import save_long_term_plan
 from ..config import MONTH_NAMES
@@ -53,8 +54,10 @@ def plan_annual_crop_rotation(
             excluded_fertilizers=used_fertilizers  # Pass excluded fertilizers for diversity
         )
         
+        # Always add the month plan, even if no best crop
+        monthly_plans.append(month_plan)
+        
         if month_plan['best_crop']:
-            monthly_plans.append(month_plan)
             all_monthly_profits.append(month_plan['best_crop'])
             # Add the selected crop to used crops for diversity
             used_crops.add(month_plan['best_crop']['crop_name'])
@@ -177,6 +180,12 @@ def generate_monthly_plan_with_normals(
     # Rank by profit
     ranked_crops = rank_crops_by_profit(profit_calculations)
     
+    # Add confidence calculation to all ranked crops
+    for crop in ranked_crops:
+        crop['recommendation_confidence'] = calculate_recommendation_confidence(
+            crop, weather_normals, soil_conditions, "long_term"
+        )
+    
     best_crop = ranked_crops[0] if ranked_crops else None
     alternatives = ranked_crops[1:4] if len(ranked_crops) > 1 else []  # Top 3 alternatives
     
@@ -241,24 +250,37 @@ def optimize_rotation_sequence(monthly_plans: List[Dict[str, Any]]) -> List[Dict
     
     for i, plan in enumerate(monthly_plans):
         if not plan['best_crop']:
-            continue
-            
-        crop_info = {
-            'month': plan['month'],
-            'month_name': plan['month_name'],
-            'crop_name': plan['best_crop']['crop_name'],
-            'profit_per_acre': plan['best_crop']['net_profit'],
-            'roi_percent': plan['best_crop']['roi_percent'],
-            'fertilizer_used': plan['best_crop'].get('fertilizer_used', 'None')
-        }
+            # Include months with no viable crops, showing N/A values
+            crop_info = {
+                'month': plan['month'],
+                'month_name': plan['month_name'],
+                'crop_name': 'N/A',
+                'profit_per_acre': 0,
+                'roi_percent': 0,
+                'adjusted_yield': 0,
+                'fertilizer_used': 'N/A',
+                'recommendation_confidence': 0
+            }
+        else:
+            crop_info = {
+                'month': plan['month'],
+                'month_name': plan['month_name'],
+                'crop_name': plan['best_crop']['crop_name'],
+                'profit_per_acre': plan['best_crop']['net_profit'],
+                'roi_percent': plan['best_crop']['roi_percent'],
+                'adjusted_yield': plan['best_crop'].get('adjusted_yield', 0),
+                'fertilizer_used': plan['best_crop'].get('fertilizer_used', 'None'),
+                'recommendation_confidence': plan['best_crop'].get('recommendation_confidence', 78.0)
+            }
         
-        # Add rotation benefits/concerns
-        if i > 0:
+        # Add rotation benefits/concerns only for months with crops
+        if i > 0 and plan['best_crop'] and len(rotation_sequence) > 0:
             prev_crop = rotation_sequence[-1]
-            crop_info['rotation_notes'] = analyze_crop_succession(
-                prev_crop['crop_name'], 
-                crop_info['crop_name']
-            )
+            if prev_crop['crop_name'] != 'N/A':
+                crop_info['rotation_notes'] = analyze_crop_succession(
+                    prev_crop['crop_name'], 
+                    crop_info['crop_name']
+                )
         
         rotation_sequence.append(crop_info)
     
