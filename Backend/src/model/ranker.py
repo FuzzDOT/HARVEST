@@ -127,6 +127,50 @@ def get_top_n_recommendations(
     return ranked[:n]
 
 
+def get_diverse_top_n_recommendations(
+    profit_calculations: List[Dict[str, Any]],
+    n: int = 3,
+    ranking_method: str = "profit"
+) -> List[Dict[str, Any]]:
+    """
+    Get top N diverse crop recommendations, ensuring no duplicate crops.
+    
+    Args:
+        profit_calculations: List of profit calculation dictionaries
+        n: Number of top recommendations to return
+        ranking_method: Method to rank crops ("profit", "roi", "yield", "suitability")
+    
+    Returns:
+        Top N diverse recommendations (no duplicate crops)
+    """
+    if ranking_method == "profit":
+        ranked = rank_crops_by_profit(profit_calculations)
+    elif ranking_method == "roi":
+        ranked = rank_crops_by_roi(profit_calculations)
+    elif ranking_method == "yield":
+        ranked = rank_crops_by_yield(profit_calculations)
+    elif ranking_method == "suitability":
+        ranked = rank_crops_by_suitability(profit_calculations)
+    else:
+        raise ValueError(f"Unknown ranking method: {ranking_method}")
+    
+    # Ensure diversity by selecting unique crops
+    seen_crops = set()
+    diverse_recommendations = []
+    
+    for recommendation in ranked:
+        crop_name = recommendation.get('crop_name')
+        if crop_name not in seen_crops:
+            seen_crops.add(crop_name)
+            diverse_recommendations.append(recommendation)
+            
+            # Stop when we have enough diverse recommendations
+            if len(diverse_recommendations) >= n:
+                break
+    
+    return diverse_recommendations
+
+
 def create_recommendation_summary(
     profit_calculations: List[Dict[str, Any]]
 ) -> Dict[str, Any]:
@@ -190,15 +234,15 @@ def apply_diversification_scoring(
     # Count how many times each crop appears (for multi-parcel scenarios)
     crop_counts = {}
     for calc in profit_calculations:
-        crop_id = calc['crop_id']
-        crop_counts[crop_id] = crop_counts.get(crop_id, 0) + 1
+        crop_name = calc['crop_name']
+        crop_counts[crop_name] = crop_counts.get(crop_name, 0) + 1
     
     # Apply diversification bonus (lower count = higher bonus)
     max_count = max(crop_counts.values()) if crop_counts else 1
     
     for calc in profit_calculations:
-        crop_id = calc['crop_id']
-        crop_frequency = crop_counts[crop_id]
+        crop_name = calc['crop_name']
+        crop_frequency = crop_counts[crop_name]
         
         # Calculate diversification multiplier (rare crops get bonus)
         diversification_multiplier = 1 + (diversification_bonus * (max_count - crop_frequency) / max_count)

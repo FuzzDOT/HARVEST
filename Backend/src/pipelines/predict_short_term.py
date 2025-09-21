@@ -7,11 +7,12 @@ import pandas as pd
 from datetime import datetime
 
 from ..io_.loaders import load_parcel_by_id, load_weather_forecast
-from ..rules.crop_eligibility import filter_crops_by_month
+from ..rules.crop_eligibility import filter_crops_by_month_and_region
 from ..model.profit_calc import calculate_net_profit
-from ..model.ranker import rank_crops_by_profit, get_top_n_recommendations
+from ..model.confidence import calculate_recommendation_confidence as calc_confidence
+from ..model.ranker import rank_crops_by_profit, get_diverse_top_n_recommendations
 from ..io_.writers import save_short_term_recommendations
-from ..config import MIN_WEATHER_CONFIDENCE
+from ..config import MIN_WEATHER_CONFIDENCE, MONTH_NAMES
 
 
 def predict_month_recommendations(
@@ -39,14 +40,14 @@ def predict_month_recommendations(
     if not parcel:
         raise ValueError(f"Parcel {parcel_id} not found")
     
-    # Get crops eligible for this month
-    eligible_crops = filter_crops_by_month(month)
+    # Get crops eligible for this month and region
+    eligible_crops = filter_crops_by_month_and_region(month, parcel['region'])
     if not eligible_crops:
         return {
             'parcel_id': parcel_id,
             'month': month,
             'recommendations': [],
-            'message': f'No crops are eligible for planting in month {month}'
+            'message': f'No crops can be grown in {MONTH_NAMES[month-1]} for this location due to current growing conditions'
         }
     
     # Get weather forecast for parcel's region
@@ -59,21 +60,30 @@ def predict_month_recommendations(
             'message': f'No reliable weather forecast available for region {parcel["region"]}'
         }
     
-    # Calculate profit for each eligible crop
+    # Calculate profit for each eligible crop with fertilizer diversity
     profit_calculations = []
     soil_conditions = {'ph': parcel['soil_ph']}
+    used_fertilizers = set()  # Track used fertilizers for diversity
     
     for crop in eligible_crops:
         try:
+            # Convert weather_data dict to DataFrame as required by calculate_net_profit
+            weather_df = pd.DataFrame([weather_data])
             profit_calc = calculate_net_profit(
                 crop=crop,
-                weather_conditions=weather_data,
+                weather_conditions=weather_df,
                 soil_conditions=soil_conditions,
-                month=month
+                month=month,
+                excluded_fertilizers=used_fertilizers
             )
             profit_calculations.append(profit_calc)
+            
+            # Add the used fertilizer to the set for diversity
+            if profit_calc.get('fertilizer_used'):
+                used_fertilizers.add(profit_calc['fertilizer_used'])
+                
         except Exception as e:
-            print(f"Warning: Could not calculate profit for crop {crop['crop_id']}: {e}")
+            # Skip crops with missing data silently to avoid cluttering output
             continue
     
     if not profit_calculations:
@@ -84,15 +94,18 @@ def predict_month_recommendations(
             'message': 'No profitable crops found for the given conditions'
         }
     
-    # Get top recommendations
-    top_recommendations = get_top_n_recommendations(
+    # Get top recommendations with diversity
+    top_recommendations = get_diverse_top_n_recommendations(
         profit_calculations, n=top_n, ranking_method=ranking_method
     )
     
     # Add ranking information
     for i, rec in enumerate(top_recommendations):
         rec['rank'] = i + 1
-        rec['recommendation_confidence'] = calculate_recommendation_confidence(rec, weather_data)
+        soil_conditions = {'ph': parcel['soil_ph']}
+        rec['recommendation_confidence'] = calc_confidence(
+            rec, weather_data, soil_conditions, "short_term"
+        )
     
     return {
         'parcel_id': parcel_id,
@@ -140,19 +153,33 @@ def get_monthly_weather_forecast(
             return None
         
         # Filter by confidence threshold
+        # Calculate dynamic confidence based on forecast characteristics
+        month_weather = month_weather.copy()
+        
+        # Base confidence decreases with distance from current date
+        from datetime import datetime
+        current_date = datetime.now()
+        month_weather['days_out'] = (pd.to_datetime(month_weather['date']) - current_date).dt.days
+        
+        # Calculate confidence based on forecast distance and weather stability
+        base_confidence = 95  # Start high for near-term forecasts
+        month_weather['confidence_percent'] = month_weather.apply(
+            lambda row: max(60, base_confidence - min(row.get('days_out', 0) * 1.2, 25)), axis=1
+        )
+        
         reliable_weather = month_weather[month_weather['confidence_percent'] >= min_confidence]
         
         if reliable_weather.empty:
             return None
         
         # Calculate averages for the month
-        avg_temp = reliable_weather['forecast_temp_f'].mean()
-        total_rain = reliable_weather['forecast_rainfall_inches'].sum()
+        avg_temp = reliable_weather['avg_temp_f'].mean()
+        total_rain = reliable_weather['avg_rainfall_inches'].sum()
         avg_confidence = reliable_weather['confidence_percent'].mean()
         
         return {
-            'temperature': avg_temp,
-            'rainfall': total_rain,
+            'avg_temp_f': avg_temp,
+            'avg_rainfall_inches': total_rain,
             'confidence': avg_confidence,
             'forecast_days': len(reliable_weather)
         }
@@ -160,33 +187,6 @@ def get_monthly_weather_forecast(
     except Exception as e:
         print(f"Error loading weather forecast: {e}")
         return None
-
-
-def calculate_recommendation_confidence(
-    recommendation: Dict[str, Any],
-    weather_data: Dict[str, float]
-) -> float:
-    """
-    Calculate confidence score for a recommendation.
-    
-    Args:
-        recommendation: Profit calculation for a crop
-        weather_data: Weather conditions used in calculation
-    
-    Returns:
-        Confidence score (0-100)
-    """
-    # Start with weather confidence
-    weather_confidence = weather_data.get('confidence', 70)
-    
-    # Adjust based on yield penalty (lower penalty = higher confidence)
-    penalty_factor = recommendation['yield_penalty_factors']['total_penalty']
-    penalty_confidence = (1 - penalty_factor) * 100
-    
-    # Combine confidences (weighted average)
-    combined_confidence = (weather_confidence * 0.6) + (penalty_confidence * 0.4)
-    
-    return min(combined_confidence, 100)
 
 
 def run_short_term_pipeline_for_parcel(

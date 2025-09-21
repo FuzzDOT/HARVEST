@@ -11,7 +11,13 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from typing import List, Dict, Any, Optional
 import logging
+import os
 from datetime import datetime
+from dotenv import load_dotenv
+
+# Load environment variables from .env file only if not in production
+if not os.getenv("RENDER"):  # Render sets this automatically
+    load_dotenv()
 
 # Import HARVEST modules
 from src.pipelines.predict_short_term import (
@@ -40,6 +46,7 @@ from src.rules.crop_eligibility import filter_crops_by_month
 from src.utils.tables import format_recommendations_table
 from src.services import process_user_prediction_request, format_prediction_results
 from src.utils.sessions import session_manager
+from src.model.crop_advice_wrapper import CropAdviceWrapper
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -53,6 +60,26 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc"
 )
+
+# Add missing root and health endpoints
+@app.get("/api/v1/", tags=["System"])
+async def api_root():
+    """API root endpoint"""
+    return {
+        "message": "HARVEST Agricultural Prediction API",
+        "version": "1.0.0",
+        "status": "operational",
+        "timestamp": datetime.now().isoformat()
+    }
+
+@app.get("/api/v1/health", tags=["System"])
+async def api_health_check():
+    """Health check endpoint"""
+    return {
+        "status": "healthy",
+        "timestamp": datetime.now().isoformat(),
+        "version": "1.0.0"
+    }
 
 # Add CORS middleware
 app.add_middleware(
@@ -72,16 +99,11 @@ class ParcelInfo(BaseModel):
     soil_type: str
 
 class CropInfo(BaseModel):
-    crop_id: str
-    name: str
-    growth_window_start: int
-    growth_window_end: int
-    ideal_temp_min: float
-    ideal_temp_max: float
-    ideal_rain_min: float
-    ideal_rain_max: float
-    base_yield_per_acre: float
-    cost_per_acre: float
+    state: str
+    crop_name: str
+    category: str
+    yield_lb_per_acre_est: int
+    price_usd_per_lb_est: float
 
 class WeatherConditions(BaseModel):
     temperature: float = Field(..., description="Temperature in Fahrenheit")
@@ -89,7 +111,7 @@ class WeatherConditions(BaseModel):
     confidence: Optional[float] = Field(None, description="Forecast confidence percentage")
 
 class ProfitCalculationRequest(BaseModel):
-    crop_id: str
+    crop_name: str
     weather_conditions: WeatherConditions
     soil_ph: float
     month: int = Field(..., ge=1, le=12)
@@ -110,7 +132,6 @@ class AnnualPlanRequest(BaseModel):
 
 class CropRecommendation(BaseModel):
     rank: int
-    crop_id: str
     crop_name: str
     net_profit: float
     roi_percent: float
@@ -235,7 +256,28 @@ async def health_check():
             }
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"System health check failed: {str(e)}")
+        logger.error(f"Health check failed: {str(e)}")
+        return {
+            "status": "unhealthy", 
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
+        }
+
+# Add endpoint aliases for missing routes
+@app.get("/api/v1/weather", tags=["Data"])
+async def get_weather():
+    """Get weather data (alias to forecast endpoint)"""
+    return await get_weather_forecast()
+
+@app.get("/api/v1/system/summary", tags=["Utilities"])
+async def get_system_summary_alias():
+    """System summary endpoint (alias)"""
+    return await get_system_summary()
+
+@app.post("/api/v1/predict/monthly", tags=["Predictions"])
+async def predict_monthly_alias(request: MonthlyRecommendationRequest):
+    """Monthly predictions endpoint (alias)"""
+    return await predict_monthly_recommendations(request)
 
 # Data endpoints
 @app.get("/api/v1/parcels", response_model=List[ParcelInfo], tags=["Data"])
@@ -308,10 +350,18 @@ async def get_weather_normals():
         raise HTTPException(status_code=500, detail=f"Failed to load weather normals: {str(e)}")
 
 # Prediction endpoints
-@app.post("/api/v1/predict/month", response_model=MonthlyRecommendationResponse, tags=["Predictions"])
+@app.post("/api/v1/predict/month", tags=["Predictions"])
 async def predict_monthly_recommendations(request: MonthlyRecommendationRequest):
     """Generate crop recommendations for a specific month."""
     try:
+        from src.io_.loaders import load_parcel_by_id, load_weather_forecast
+        from datetime import datetime
+        
+        # Get parcel information
+        parcel = load_parcel_by_id(request.parcel_id)
+        if not parcel:
+            raise HTTPException(status_code=400, detail=f"Parcel {request.parcel_id} not found")
+        
         result = predict_month_recommendations(
             parcel_id=request.parcel_id,
             month=request.month,
@@ -325,7 +375,17 @@ async def predict_monthly_recommendations(request: MonthlyRecommendationRequest)
             if 'rank' not in rec:
                 rec['rank'] = i + 1
         
-        return result
+        # Return the raw result without forcing it into MonthlyRecommendationResponse
+        # since the pipeline function returns a simpler structure
+        return {
+            "parcel_id": result.get('parcel_id', request.parcel_id),
+            "month": result.get('month', request.month),
+            "recommendations": result.get('recommendations', []),
+            "message": result.get('message', ''),
+            "total_crops_evaluated": len(result.get('recommendations', [])),
+            "ranking_method": request.ranking_method,
+            "generated_at": datetime.now().isoformat()
+        }
         
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -416,21 +476,23 @@ async def calculate_crop_profit(request: ProfitCalculationRequest):
         from src.io_.loaders import load_crop_by_id
         
         # Get crop information
-        crop = load_crop_by_id(request.crop_id)
+        crop = load_crop_by_id(request.crop_name)
         if not crop:
-            raise HTTPException(status_code=404, detail=f"Crop {request.crop_id} not found")
+            raise HTTPException(status_code=404, detail=f"Crop {request.crop_name} not found")
         
         # Prepare conditions
         weather_conditions = {
-            'temperature': request.weather_conditions.temperature,
-            'rainfall': request.weather_conditions.rainfall
+            'avg_temp_f': request.weather_conditions.temperature,
+            'avg_rainfall_inches': request.weather_conditions.rainfall
         }
+        import pandas as pd
+        weather_conditions_df = pd.DataFrame([weather_conditions])
         soil_conditions = {'ph': request.soil_ph}
         
         # Calculate profit
         result = calculate_net_profit(
             crop=crop,
-            weather_conditions=weather_conditions,
+            weather_conditions=weather_conditions_df,
             soil_conditions=soil_conditions,
             month=request.month,
             price_per_unit=request.price_override
@@ -472,17 +534,19 @@ async def compare_crops_for_month(
         
         # Calculate profits for all crops
         comparisons = []
+        import pandas as pd
         weather_conditions = {
             'temperature': weather_data['temperature'],
             'rainfall': weather_data['rainfall']
         }
         soil_conditions = {'ph': soil_ph}
+        weather_conditions_df = pd.DataFrame([weather_conditions])
         
         for crop in eligible_crops:
             try:
                 profit_calc = calculate_net_profit(
                     crop=crop,
-                    weather_conditions=weather_conditions,
+                    weather_conditions=weather_conditions_df,
                     soil_conditions=soil_conditions,
                     month=month
                 )
@@ -521,6 +585,8 @@ async def compare_crops_for_month(
 async def get_system_summary():
     """Get system data summary and statistics."""
     try:
+        from datetime import datetime
+        
         parcels_df = load_parcels()
         crops_df = load_crops()
         fertilizers_df = load_fertilizers()
@@ -531,19 +597,19 @@ async def get_system_summary():
                 "parcels": {
                     "count": len(parcels_df),
                     "regions": parcels_df['region'].unique().tolist(),
-                    "total_acreage": parcels_df['acreage'].sum()
+                    "total_acreage": float(parcels_df['acreage'].sum())
                 },
                 "crops": {
                     "count": len(crops_df),
-                    "crop_types": crops_df['name'].tolist()
+                    "crop_types": crops_df['crop_name'].unique().tolist()
                 },
                 "fertilizers": {
                     "count": len(fertilizers_df),
-                    "fertilizer_types": fertilizers_df['name'].tolist()
+                    "fertilizer_types": fertilizers_df['fertilizer_name'].tolist()
                 },
                 "price_history": {
                     "records": len(prices_df),
-                    "crops_with_prices": prices_df['crop_id'].unique().tolist()
+                    "crops_with_prices": prices_df['crop_name'].unique().tolist()
                 }
             },
             "api_info": {
@@ -659,6 +725,128 @@ async def get_crop_image(
     if result is None:
         raise HTTPException(status_code=404, detail="Session not found or expired")
     return {"imagePath": result, "index": index, "session_id": session_id}
+
+
+# New models for crop advice output
+class CropAdviceRequest(BaseModel):
+    prediction_type: str = Field(..., pattern="^(short_term|long_term)$", description="Type of prediction")
+    parcel_id: str = Field(..., description="Parcel ID for predictions") 
+    month: Optional[int] = Field(None, ge=1, le=12, description="Month for short-term predictions")
+    start_month: Optional[int] = Field(1, ge=1, le=12, description="Starting month for long-term predictions")
+
+class CropAdviceResponse(BaseModel):
+    prediction_type: str
+    parcel_id: str
+    total_recommendations: int
+    crop_advice: Dict[str, Any]
+    recommendations: List[Dict[str, Any]]
+    generated_at: str
+
+
+@app.post("/api/v1/output", response_model=CropAdviceResponse, tags=["Output"])
+async def generate_crop_output(request: CropAdviceRequest):
+    """
+    Generate comprehensive crop recommendations with AI-powered advice.
+    
+    For short-term: Returns 5 crops with AI advice for the specified month
+    For long-term: Returns 12 crops with AI advice for annual planning
+    """
+    try:
+        logger.info(f"Generating {request.prediction_type} crop output for parcel {request.parcel_id}")
+        
+        # Initialize the crop advice wrapper
+        advice_wrapper = CropAdviceWrapper()
+        
+        if request.prediction_type == "short_term":
+            if not request.month:
+                raise HTTPException(status_code=400, detail="Month is required for short-term predictions")
+            
+            # Get short-term recommendations
+            monthly_request = MonthlyRecommendationRequest(
+                parcel_id=request.parcel_id,
+                month=request.month,
+                top_n=5,
+                ranking_method="profit",
+                min_confidence=70.0
+            )
+            
+            result = predict_month_recommendations(
+                parcel_id=monthly_request.parcel_id,
+                month=monthly_request.month,
+                top_n=monthly_request.top_n,
+                ranking_method=monthly_request.ranking_method,
+                min_confidence=monthly_request.min_confidence
+            )
+            
+            # Extract crop names
+            crop_names = [rec['crop_name'] for rec in result.get('recommendations', [])]
+            
+            # Get AI advice for each crop
+            crop_advice = advice_wrapper.get_multiple_crop_care(crop_names)
+            
+            # Format the response
+            formatted_advice = {}
+            for crop_name, advice in crop_advice.items():
+                formatted_advice[crop_name] = advice.model_dump()
+            
+            return CropAdviceResponse(
+                prediction_type=request.prediction_type,
+                parcel_id=request.parcel_id,
+                total_recommendations=len(crop_names),
+                crop_advice=formatted_advice,
+                recommendations=result.get('recommendations', []),
+                generated_at=datetime.now().isoformat()
+            )
+            
+        else:  # long_term
+            # Get long-term recommendations  
+            annual_request = AnnualPlanRequest(
+                parcel_id=request.parcel_id,
+                start_month=request.start_month or 1,
+                diversification_bonus=0.1,
+                min_profit_threshold=0.0
+            )
+            
+            result = plan_annual_crop_rotation(
+                parcel_id=annual_request.parcel_id,
+                start_month=annual_request.start_month,
+                diversification_bonus=annual_request.diversification_bonus,
+                min_profit_threshold=annual_request.min_profit_threshold
+            )
+            
+            # Extract unique crop names from all monthly plans
+            all_crops = set()
+            monthly_plans = result.get('rotation_sequence', [])
+            for month_plan in monthly_plans:
+                if 'recommendations' in month_plan:
+                    for rec in month_plan['recommendations'][:1]:  # Take top recommendation per month
+                        all_crops.add(rec['crop_name'])
+            
+            crop_names = list(all_crops)[:12]  # Limit to 12 unique crops
+            
+            # Get AI advice for each crop
+            crop_advice = advice_wrapper.get_multiple_crop_care(crop_names)
+            
+            # Format the response
+            formatted_advice = {}
+            for crop_name, advice in crop_advice.items():
+                formatted_advice[crop_name] = advice.model_dump()
+            
+            return CropAdviceResponse(
+                prediction_type=request.prediction_type,
+                parcel_id=request.parcel_id,
+                total_recommendations=len(crop_names),
+                crop_advice=formatted_advice,
+                recommendations=monthly_plans,
+                generated_at=datetime.now().isoformat()
+            )
+            
+    except ValueError as ve:
+        logger.error(f"Validation error in crop output: {str(ve)}")
+        raise HTTPException(status_code=400, detail=str(ve))
+    except Exception as e:
+        logger.error(f"Crop output generation error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to generate crop output: {str(e)}")
 
 
 # Error handlers

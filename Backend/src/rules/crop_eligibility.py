@@ -27,9 +27,34 @@ def filter_crops_by_month(month: int) -> List[Dict[str, Any]]:
     return eligible_crops
 
 
+def filter_crops_by_month_and_region(month: int, region: str) -> List[Dict[str, Any]]:
+    """
+    Filter crops that can be planted in the given month AND are available in the specified region.
+    
+    Args:
+        month: Month number (1-12)
+        region: Region/state code (e.g., 'FL', 'CA', 'TX')
+    
+    Returns:
+        List of eligible crop records for that region
+    """
+    crops = load_crops()
+    eligible_crops = []
+    
+    for _, crop in crops.iterrows():
+        crop_dict = crop.to_dict()
+        # Check both month eligibility AND region availability
+        if (is_crop_eligible_for_month(crop_dict, month) and 
+            crop_dict.get('state') == region):
+            eligible_crops.append(crop_dict)
+    
+    return eligible_crops
+
+
 def is_crop_eligible_for_month(crop: Dict[str, Any], month: int) -> bool:
     """
     Check if a crop can be planted in the given month.
+    Since real data doesn't have growth windows, use category-based defaults.
     
     Args:
         crop: Crop specification dictionary
@@ -38,10 +63,22 @@ def is_crop_eligible_for_month(crop: Dict[str, Any], month: int) -> bool:
     Returns:
         True if crop can be planted in this month
     """
-    start_month = crop['growth_window_start']
-    end_month = crop['growth_window_end']
+    # Default planting windows by crop category for real data
+    category_windows = {
+        'grain': (3, 10),      # March to October (corn, wheat, etc)
+        'fiber': (4, 6),       # April to June (cotton)
+        'legume': (4, 8),      # April to August (soybeans, peanuts)
+        'vegetable': (3, 10),  # March to October (most vegetables)
+        'fruit': (3, 5),       # March to May (berry crops, etc)
+        'tuber': (3, 8),       # March to August (potatoes, sweet potatoes)
+        'cash_crop': (4, 7),   # April to July (tobacco, etc)
+    }
     
-    # Handle year-wrapping windows (e.g., winter wheat: 9-11 means Sep-Nov)
+    # Get crop category, default to grain if not specified
+    category = crop.get('category', 'grain')
+    start_month, end_month = category_windows.get(category, (3, 10))
+    
+    # Handle year-wrapping windows
     if start_month <= end_month:
         # Normal case: within same year
         return start_month <= month <= end_month
@@ -66,8 +103,21 @@ def get_eligible_crops_for_season(start_month: int, end_month: int) -> List[Dict
     
     for _, crop in crops.iterrows():
         crop_dict = crop.to_dict()
-        crop_start = crop_dict['growth_window_start']
-        crop_end = crop_dict['growth_window_end']
+        
+        # Use category-based defaults since real data doesn't have growth windows
+        category = crop_dict.get('category', 'grain')
+        category_windows = {
+            'grain': (3, 10),      # March to October (corn, wheat, etc)
+            'fiber': (4, 6),       # April to June (cotton)
+            'legume': (4, 8),      # April to August (soybeans, peanuts)
+            'vegetable': (3, 10),  # March to October (most vegetables)
+            'fruit': (3, 5),       # March to May (berry crops, etc)
+            'tuber': (3, 8),       # March to August (potatoes, sweet potatoes)
+            'cash_crop': (4, 7),   # April to July (tobacco, etc)
+            'oilseed': (4, 8),     # April to August (sunflower, etc)
+        }
+        
+        crop_start, crop_end = category_windows.get(category, (3, 10))
         
         # Check if crop window overlaps with season
         if seasons_overlap(crop_start, crop_end, start_month, end_month):
@@ -127,7 +177,20 @@ def is_month_in_harvest_window(crop: Dict[str, Any], month: int) -> bool:
     Returns:
         True if month is in harvest window
     """
-    harvest_month = crop['growth_window_end']
+    # Use category-based defaults since real data doesn't have growth windows
+    category = crop.get('category', 'grain')
+    category_windows = {
+        'grain': (3, 10),      # March to October (corn, wheat, etc)
+        'fiber': (4, 6),       # April to June (cotton)
+        'legume': (4, 8),      # April to August (soybeans, peanuts)
+        'vegetable': (3, 10),  # March to October (most vegetables)
+        'fruit': (3, 5),       # March to May (berry crops, etc)
+        'tuber': (3, 8),       # March to August (potatoes, sweet potatoes)
+        'cash_crop': (4, 7),   # April to July (tobacco, etc)
+        'oilseed': (4, 8),     # April to August (sunflower, etc)
+    }
+    
+    _, harvest_month = category_windows.get(category, (3, 10))
     return month == harvest_month
 
 

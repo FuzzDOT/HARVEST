@@ -15,8 +15,109 @@ from ..io_.loaders import (
 )
 from ..model.profit_calc import calculate_net_profit
 from ..model.yield_penalty import calculate_total_yield_penalty
-from ..rules.crop_eligibility import filter_crops_by_month
+from ..rules.crop_eligibility import filter_crops_by_month, filter_crops_by_month_and_region
 from ..rules.fertilizer_match import get_best_fertilizer_for_crop
+from ..utils.dates import get_month_name
+
+
+def determine_region_from_location(location: Dict[str, float]) -> Optional[str]:
+    """
+    Determine region/state code from latitude/longitude coordinates.
+    Simplified mapping for demo purposes.
+    """
+    latitude = location['latitude']
+    longitude = location['longitude']
+    
+    # Very simplified US region mapping based on coordinates
+    # In production, this would use a proper geographic lookup service
+    if latitude > 45:
+        return "AK"  # Alaska region
+    elif latitude > 40:
+        if longitude > -100:
+            return "IL"  # Midwest region
+        else:
+            return "WA"  # Pacific Northwest
+    elif latitude > 35:
+        if longitude > -100:
+            return "VA"  # Mid-Atlantic
+        else:
+            return "CA"  # California
+    elif latitude > 30:
+        if longitude > -100:
+            return "FL"  # Southeast
+        else:
+            return "AZ"  # Southwest
+    else:
+        return "TX"  # South
+
+
+def create_no_crops_available_response(reason: str = "unsuitable growing conditions") -> Dict[str, Any]:
+    """
+    Create a constant response when no crops are available due to environmental conditions.
+    
+    Args:
+        reason: Reason why no crops are available
+        
+    Returns:
+        Standardized "no crops available" response
+    """
+    return {
+        'cropName1': 'No crops available',
+        'cropPrice1': 0.0,
+        'fertilizerName1': 'N/A',
+        'fertilizerPrice1': 0.0,
+        'image1': '/static/images/no_crops.png',
+        'profitGraph1': None,
+        'netProfit1': 0.0,
+        'roiPercent1': 0.0,
+        'confidence1': 100.0,  # High confidence in the "no crops" determination
+        'yieldEstimate1': 0.0,
+        
+        'cropName2': f'Reason: {reason}',
+        'cropPrice2': 0.0,
+        'fertilizerName2': 'N/A',
+        'fertilizerPrice2': 0.0,
+        'image2': '/static/images/weather_warning.png',
+        'profitGraph2': None,
+        'netProfit2': 0.0,
+        'roiPercent2': 0.0,
+        'confidence2': 100.0,
+        'yieldEstimate2': 0.0,
+        
+        # Empty slots for remaining positions
+        'cropName3': None,
+        'cropPrice3': None,
+        'fertilizerName3': None,
+        'fertilizerPrice3': None,
+        'image3': None,
+        'profitGraph3': None,
+        'netProfit3': None,
+        'roiPercent3': None,
+        'confidence3': None,
+        'yieldEstimate3': None,
+        
+        'cropName4': None,
+        'cropPrice4': None,
+        'fertilizerName4': None,
+        'fertilizerPrice4': None,
+        'image4': None,
+        'profitGraph4': None,
+        'netProfit4': None,
+        'roiPercent4': None,
+        'confidence4': None,
+        'yieldEstimate4': None,
+        
+        'cropName5': None,
+        'cropPrice5': None,
+        'fertilizerName5': None,
+        'fertilizerPrice5': None,
+        'image5': None,
+        'profitGraph5': None,
+        'netProfit5': None,
+        'roiPercent5': None,
+        'confidence5': None,
+        'yieldEstimate5': None,
+    }
 
 
 def process_user_prediction_request(
@@ -55,16 +156,24 @@ def process_user_prediction_request(
     else:
         weather_data = get_weather_for_location(location, current_month, use_forecast=False)
     
-    # Get eligible crops for the current month
-    eligible_crops_list = filter_crops_by_month(current_month)
+    # Get eligible crops for the current month and region
+    region_code = determine_region_from_location(location)
+    if region_code:
+        eligible_crops_list = filter_crops_by_month_and_region(current_month, region_code)
+    else:
+        eligible_crops_list = filter_crops_by_month(current_month)
     
+    # If no crops are eligible for this month/region, return constant response
     if not eligible_crops_list:
-        raise ValueError("No eligible crops for current month")
+        no_crops_response = create_no_crops_available_response(
+            f"No crops can be grown in {get_month_name(current_month)} for your location due to current growing conditions"
+        )
+        return [no_crops_response]  # Return as list with single "combination" for consistency
     
     # Convert to DataFrame for easier processing
     crops = load_crops()
-    eligible_crop_ids = [crop['crop_id'] for crop in eligible_crops_list]
-    eligible_crops = crops[crops['crop_id'].isin(eligible_crop_ids)]
+    eligible_crop_names = [crop['crop_name'] for crop in eligible_crops_list]
+    eligible_crops = crops[crops['crop_name'].isin(eligible_crop_names)]
     
     # Calculate profitability for each crop-fertilizer combination
     combinations = []
@@ -84,23 +193,25 @@ def process_user_prediction_request(
         soil_conditions = {'ph': parcel.get('soil_ph', 6.5)}
             
         # Calculate yield penalties for confidence scoring
+        # Convert weather_data dict to DataFrame for compatibility
+        weather_df = pd.DataFrame([weather_data])
         penalties = calculate_total_yield_penalty(
-            weather_data, crop_dict, soil_conditions
+            weather_df, crop_dict, soil_conditions
         )
         
         # Calculate net profit
+        weather_df_for_profit = pd.DataFrame([weather_data])
         profit_result = calculate_net_profit(
-            crop_dict, weather_data, soil_conditions, current_month
+            crop_dict, weather_df_for_profit, soil_conditions, current_month
         )
         
         # Get additional data
-        image_path = get_crop_image_path(crop_dict['crop_id'])
-        profit_graph_path = get_profit_graph_path(crop_dict['crop_id'])
-        crop_price = get_latest_price(crop_dict['crop_id'])
+        image_path = get_crop_image_path(crop_dict['crop_name'])
+        profit_graph_path = get_profit_graph_path(crop_dict['crop_name'])
+        crop_price = get_latest_price(crop_dict['crop_name'], parcel.get('region'))
         
         combination = {
-            'crop_id': crop_dict['crop_id'],
-            'crop_name': crop_dict['name'],
+            'crop_name': crop_dict['crop_name'],
             'crop_price': crop_price or 0.0,
             'fertilizer_name': best_fertilizer.get('name', 'Unknown'),
             'fertilizer_price': best_fertilizer.get('cost_per_unit', 0.0),
@@ -109,7 +220,7 @@ def process_user_prediction_request(
             'image_path': image_path,
             'profit_graph_path': profit_graph_path,
             'confidence_score': calculate_confidence_score(penalties, weather_data),
-            'yield_estimate': crop_dict['base_yield_per_acre'] * (1 - penalties['total_penalty'])
+            'yield_estimate': crop_dict['yield_lb_per_acre_est'] * (1 - penalties['total_penalty'])
         }
         
         combinations.append(combination)
@@ -146,9 +257,9 @@ def get_weather_for_location(
         if not region_weather.empty:
             latest = region_weather.iloc[-1]
             return {
-                'temperature': latest['forecast_temp_f'],
-                'rainfall': latest['forecast_rainfall_inches'],
-                'confidence': latest['confidence_percent']
+                'temperature': latest['avg_temp_f'],
+                'rainfall': latest['avg_rainfall_inches'],
+                'confidence': latest.get('confidence_percent', 85)  # Default confidence if not available
             }
     
     # Fallback to normals
