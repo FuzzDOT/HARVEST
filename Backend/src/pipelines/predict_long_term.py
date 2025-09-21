@@ -134,9 +134,11 @@ def generate_monthly_plan_with_normals(
     
     for crop in eligible_crops:
         try:
+            # Convert weather_normals dict to DataFrame as required by calculate_net_profit
+            weather_conditions_df = pd.DataFrame([weather_normals])
             profit_calc = calculate_net_profit(
                 crop=crop,
-                weather_conditions=weather_normals,
+                weather_conditions=weather_conditions_df,
                 soil_conditions=soil_conditions,
                 month=month
             )

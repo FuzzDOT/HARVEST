@@ -65,9 +65,11 @@ def predict_month_recommendations(
     
     for crop in eligible_crops:
         try:
+            # Convert weather_data dict to DataFrame as required by calculate_net_profit
+            weather_df = pd.DataFrame([weather_data])
             profit_calc = calculate_net_profit(
                 crop=crop,
-                weather_conditions=weather_data,
+                weather_conditions=weather_df,
                 soil_conditions=soil_conditions,
                 month=month
             )

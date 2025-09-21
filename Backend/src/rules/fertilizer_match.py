@@ -79,7 +79,7 @@ def get_best_fertilizer_for_crop(
         return max(suitable_fertilizers, key=lambda f: f['potassium_percent'])
     elif preference == "cost":
         # Prefer lowest cost
-        return min(suitable_fertilizers, key=lambda f: f['price_per_lb'])
+        return min(suitable_fertilizers, key=lambda f: f['cost_usd_per_lb'])
     else:
         # Default to first available
         return suitable_fertilizers[0]
@@ -88,23 +88,30 @@ def get_best_fertilizer_for_crop(
 def npk_variance(fertilizer: Dict[str, Any]) -> float:
     """
     Calculate the variance in NPK ratios (lower = more balanced).
+    Extract NPK values from fertilizer name if available.
     
     Args:
         fertilizer: Fertilizer specification dictionary
     
     Returns:
-        Variance in NPK percentages
+        Variance in NPK percentages (or 0 if NPK not extractable)
     """
-    npk_values = [
-        fertilizer['nitrogen_percent'],
-        fertilizer['phosphorus_percent'],
-        fertilizer['potassium_percent']
-    ]
+    import re
     
-    mean_npk = sum(npk_values) / len(npk_values)
-    variance = sum((x - mean_npk) ** 2 for x in npk_values) / len(npk_values)
+    # Try to extract NPK from fertilizer name (e.g., "Urea 46-0-0")
+    name = fertilizer.get('fertilizer_name', '')
+    npk_match = re.search(r'(\d+)-(\d+)-(\d+)', name)
     
-    return variance
+    if npk_match:
+        n, p, k = map(int, npk_match.groups())
+        npk_values = [n, p, k]
+        
+        mean_npk = sum(npk_values) / len(npk_values)
+        variance = sum((x - mean_npk) ** 2 for x in npk_values) / len(npk_values)
+        return variance
+    else:
+        # If no NPK pattern found, use cost as fallback metric
+        return fertilizer.get('cost_usd_per_lb', 1.0)
 
 
 def calculate_fertilizer_cost_per_acre(
@@ -121,7 +128,7 @@ def calculate_fertilizer_cost_per_acre(
     Returns:
         Cost per acre in dollars
     """
-    return fertilizer['price_per_lb'] * application_rate_lbs
+    return fertilizer['cost_usd_per_lb'] * application_rate_lbs
 
 
 def get_fertilizer_recommendations_for_season(

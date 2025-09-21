@@ -63,8 +63,8 @@ def process_user_prediction_request(
     
     # Convert to DataFrame for easier processing
     crops = load_crops()
-    eligible_crop_ids = [crop['crop_id'] for crop in eligible_crops_list]
-    eligible_crops = crops[crops['crop_id'].isin(eligible_crop_ids)]
+    eligible_crop_names = [crop['crop_name'] for crop in eligible_crops_list]
+    eligible_crops = crops[crops['crop_name'].isin(eligible_crop_names)]
     
     # Calculate profitability for each crop-fertilizer combination
     combinations = []
@@ -84,23 +84,25 @@ def process_user_prediction_request(
         soil_conditions = {'ph': parcel.get('soil_ph', 6.5)}
             
         # Calculate yield penalties for confidence scoring
+        # Convert weather_data dict to DataFrame for compatibility
+        weather_df = pd.DataFrame([weather_data])
         penalties = calculate_total_yield_penalty(
-            weather_data, crop_dict, soil_conditions
+            weather_df, crop_dict, soil_conditions
         )
         
         # Calculate net profit
+        weather_df_for_profit = pd.DataFrame([weather_data])
         profit_result = calculate_net_profit(
-            crop_dict, weather_data, soil_conditions, current_month
+            crop_dict, weather_df_for_profit, soil_conditions, current_month
         )
         
         # Get additional data
-        image_path = get_crop_image_path(crop_dict['crop_id'])
-        profit_graph_path = get_profit_graph_path(crop_dict['crop_id'])
-        crop_price = get_latest_price(crop_dict['crop_id'])
+        image_path = get_crop_image_path(crop_dict['crop_name'])
+        profit_graph_path = get_profit_graph_path(crop_dict['crop_name'])
+        crop_price = get_latest_price(crop_dict['crop_name'], parcel.get('region'))
         
         combination = {
-            'crop_id': crop_dict['crop_id'],
-            'crop_name': crop_dict['name'],
+            'crop_name': crop_dict['crop_name'],
             'crop_price': crop_price or 0.0,
             'fertilizer_name': best_fertilizer.get('name', 'Unknown'),
             'fertilizer_price': best_fertilizer.get('cost_per_unit', 0.0),
@@ -109,7 +111,7 @@ def process_user_prediction_request(
             'image_path': image_path,
             'profit_graph_path': profit_graph_path,
             'confidence_score': calculate_confidence_score(penalties, weather_data),
-            'yield_estimate': crop_dict['base_yield_per_acre'] * (1 - penalties['total_penalty'])
+            'yield_estimate': crop_dict['yield_lb_per_acre_est'] * (1 - penalties['total_penalty'])
         }
         
         combinations.append(combination)

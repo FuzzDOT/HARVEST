@@ -54,6 +54,26 @@ app = FastAPI(
     redoc_url="/redoc"
 )
 
+# Add missing root and health endpoints
+@app.get("/api/v1/", tags=["System"])
+async def api_root():
+    """API root endpoint"""
+    return {
+        "message": "HARVEST Agricultural Prediction API",
+        "version": "1.0.0",
+        "status": "operational",
+        "timestamp": datetime.now().isoformat()
+    }
+
+@app.get("/api/v1/health", tags=["System"])
+async def api_health_check():
+    """Health check endpoint"""
+    return {
+        "status": "healthy",
+        "timestamp": datetime.now().isoformat(),
+        "version": "1.0.0"
+    }
+
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
@@ -72,16 +92,11 @@ class ParcelInfo(BaseModel):
     soil_type: str
 
 class CropInfo(BaseModel):
-    crop_id: str
-    name: str
-    growth_window_start: int
-    growth_window_end: int
-    ideal_temp_min: float
-    ideal_temp_max: float
-    ideal_rain_min: float
-    ideal_rain_max: float
-    base_yield_per_acre: float
-    cost_per_acre: float
+    state: str
+    crop_name: str
+    category: str
+    yield_lb_per_acre_est: int
+    price_usd_per_lb_est: float
 
 class WeatherConditions(BaseModel):
     temperature: float = Field(..., description="Temperature in Fahrenheit")
@@ -89,7 +104,7 @@ class WeatherConditions(BaseModel):
     confidence: Optional[float] = Field(None, description="Forecast confidence percentage")
 
 class ProfitCalculationRequest(BaseModel):
-    crop_id: str
+    crop_name: str
     weather_conditions: WeatherConditions
     soil_ph: float
     month: int = Field(..., ge=1, le=12)
@@ -110,7 +125,6 @@ class AnnualPlanRequest(BaseModel):
 
 class CropRecommendation(BaseModel):
     rank: int
-    crop_id: str
     crop_name: str
     net_profit: float
     roi_percent: float
@@ -235,7 +249,28 @@ async def health_check():
             }
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"System health check failed: {str(e)}")
+        logger.error(f"Health check failed: {str(e)}")
+        return {
+            "status": "unhealthy", 
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
+        }
+
+# Add endpoint aliases for missing routes
+@app.get("/api/v1/weather", tags=["Data"])
+async def get_weather():
+    """Get weather data (alias to forecast endpoint)"""
+    return await get_weather_forecast()
+
+@app.get("/api/v1/system/summary", tags=["Utilities"])
+async def get_system_summary_alias():
+    """System summary endpoint (alias)"""
+    return await get_system_summary()
+
+@app.post("/api/v1/predict/monthly", tags=["Predictions"])
+async def predict_monthly_alias(request: MonthlyRecommendationRequest):
+    """Monthly predictions endpoint (alias)"""
+    return await predict_monthly_recommendations(request)
 
 # Data endpoints
 @app.get("/api/v1/parcels", response_model=List[ParcelInfo], tags=["Data"])
@@ -308,10 +343,18 @@ async def get_weather_normals():
         raise HTTPException(status_code=500, detail=f"Failed to load weather normals: {str(e)}")
 
 # Prediction endpoints
-@app.post("/api/v1/predict/month", response_model=MonthlyRecommendationResponse, tags=["Predictions"])
+@app.post("/api/v1/predict/month", tags=["Predictions"])
 async def predict_monthly_recommendations(request: MonthlyRecommendationRequest):
     """Generate crop recommendations for a specific month."""
     try:
+        from src.io_.loaders import load_parcel_by_id, load_weather_forecast
+        from datetime import datetime
+        
+        # Get parcel information
+        parcel = load_parcel_by_id(request.parcel_id)
+        if not parcel:
+            raise HTTPException(status_code=400, detail=f"Parcel {request.parcel_id} not found")
+        
         result = predict_month_recommendations(
             parcel_id=request.parcel_id,
             month=request.month,
@@ -325,7 +368,17 @@ async def predict_monthly_recommendations(request: MonthlyRecommendationRequest)
             if 'rank' not in rec:
                 rec['rank'] = i + 1
         
-        return result
+        # Return the raw result without forcing it into MonthlyRecommendationResponse
+        # since the pipeline function returns a simpler structure
+        return {
+            "parcel_id": result.get('parcel_id', request.parcel_id),
+            "month": result.get('month', request.month),
+            "recommendations": result.get('recommendations', []),
+            "message": result.get('message', ''),
+            "total_crops_evaluated": len(result.get('recommendations', [])),
+            "ranking_method": request.ranking_method,
+            "generated_at": datetime.now().isoformat()
+        }
         
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -416,21 +469,23 @@ async def calculate_crop_profit(request: ProfitCalculationRequest):
         from src.io_.loaders import load_crop_by_id
         
         # Get crop information
-        crop = load_crop_by_id(request.crop_id)
+        crop = load_crop_by_id(request.crop_name)
         if not crop:
-            raise HTTPException(status_code=404, detail=f"Crop {request.crop_id} not found")
+            raise HTTPException(status_code=404, detail=f"Crop {request.crop_name} not found")
         
         # Prepare conditions
         weather_conditions = {
-            'temperature': request.weather_conditions.temperature,
-            'rainfall': request.weather_conditions.rainfall
+            'avg_temp_f': request.weather_conditions.temperature,
+            'avg_rainfall_inches': request.weather_conditions.rainfall
         }
+        import pandas as pd
+        weather_conditions_df = pd.DataFrame([weather_conditions])
         soil_conditions = {'ph': request.soil_ph}
         
         # Calculate profit
         result = calculate_net_profit(
             crop=crop,
-            weather_conditions=weather_conditions,
+            weather_conditions=weather_conditions_df,
             soil_conditions=soil_conditions,
             month=request.month,
             price_per_unit=request.price_override
@@ -472,17 +527,19 @@ async def compare_crops_for_month(
         
         # Calculate profits for all crops
         comparisons = []
+        import pandas as pd
         weather_conditions = {
             'temperature': weather_data['temperature'],
             'rainfall': weather_data['rainfall']
         }
         soil_conditions = {'ph': soil_ph}
+        weather_conditions_df = pd.DataFrame([weather_conditions])
         
         for crop in eligible_crops:
             try:
                 profit_calc = calculate_net_profit(
                     crop=crop,
-                    weather_conditions=weather_conditions,
+                    weather_conditions=weather_conditions_df,
                     soil_conditions=soil_conditions,
                     month=month
                 )
@@ -521,6 +578,8 @@ async def compare_crops_for_month(
 async def get_system_summary():
     """Get system data summary and statistics."""
     try:
+        from datetime import datetime
+        
         parcels_df = load_parcels()
         crops_df = load_crops()
         fertilizers_df = load_fertilizers()
@@ -531,19 +590,19 @@ async def get_system_summary():
                 "parcels": {
                     "count": len(parcels_df),
                     "regions": parcels_df['region'].unique().tolist(),
-                    "total_acreage": parcels_df['acreage'].sum()
+                    "total_acreage": float(parcels_df['acreage'].sum())
                 },
                 "crops": {
                     "count": len(crops_df),
-                    "crop_types": crops_df['name'].tolist()
+                    "crop_types": crops_df['crop_name'].unique().tolist()
                 },
                 "fertilizers": {
                     "count": len(fertilizers_df),
-                    "fertilizer_types": fertilizers_df['name'].tolist()
+                    "fertilizer_types": fertilizers_df['fertilizer_name'].tolist()
                 },
                 "price_history": {
                     "records": len(prices_df),
-                    "crops_with_prices": prices_df['crop_id'].unique().tolist()
+                    "crops_with_prices": prices_df['crop_name'].unique().tolist()
                 }
             },
             "api_info": {
