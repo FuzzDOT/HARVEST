@@ -45,6 +45,7 @@ from src.model.ranker import (
 from src.rules.crop_eligibility import filter_crops_by_month
 from src.utils.tables import format_recommendations_table
 from src.services import process_user_prediction_request, format_prediction_results
+from src.services.image_service import process_prediction_and_send_images
 from src.utils.sessions import session_manager
 from src.model.crop_advice_wrapper import CropAdviceWrapper
 
@@ -375,9 +376,27 @@ async def predict_monthly_recommendations(request: MonthlyRecommendationRequest)
             if 'rank' not in rec:
                 rec['rank'] = i + 1
         
+        # Send images for the predicted crops (short-term prediction)
+        image_send_result = None
+        try:
+            if result.get('recommendations'):
+                logger.info(f"Sending images for short-term prediction (parcel: {request.parcel_id}, month: {request.month})")
+                image_send_result = await process_prediction_and_send_images(
+                    prediction_result=result,
+                    prediction_type="short_term",
+                    additional_metadata={
+                        "ranking_method": request.ranking_method,
+                        "min_confidence": request.min_confidence
+                    }
+                )
+        except Exception as e:
+            logger.error(f"Failed to send images for short-term prediction: {str(e)}")
+            # Don't fail the entire request if image sending fails
+            image_send_result = {"success": False, "error": str(e)}
+        
         # Return the raw result without forcing it into MonthlyRecommendationResponse
         # since the pipeline function returns a simpler structure
-        return {
+        response = {
             "parcel_id": result.get('parcel_id', request.parcel_id),
             "month": result.get('month', request.month),
             "recommendations": result.get('recommendations', []),
@@ -386,6 +405,12 @@ async def predict_monthly_recommendations(request: MonthlyRecommendationRequest)
             "ranking_method": request.ranking_method,
             "generated_at": datetime.now().isoformat()
         }
+        
+        # Include image sending result if available
+        if image_send_result:
+            response["image_send_result"] = image_send_result
+        
+        return response
         
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -432,6 +457,29 @@ async def plan_annual_rotation(request: AnnualPlanRequest):
             diversification_bonus=request.diversification_bonus,
             min_profit_threshold=request.min_profit_threshold
         )
+        
+        # Send images for the predicted crops (long-term prediction)
+        image_send_result = None
+        try:
+            if result.get('monthly_plans') or result.get('rotation_sequence'):
+                logger.info(f"Sending images for long-term prediction (parcel: {request.parcel_id})")
+                image_send_result = await process_prediction_and_send_images(
+                    prediction_result=result,
+                    prediction_type="long_term",
+                    additional_metadata={
+                        "start_month": request.start_month,
+                        "diversification_bonus": request.diversification_bonus,
+                        "min_profit_threshold": request.min_profit_threshold
+                    }
+                )
+        except Exception as e:
+            logger.error(f"Failed to send images for long-term prediction: {str(e)}")
+            # Don't fail the entire request if image sending fails
+            image_send_result = {"success": False, "error": str(e)}
+        
+        # Add image sending result to response if available
+        if image_send_result:
+            result["image_send_result"] = image_send_result
         
         return result
         
@@ -651,9 +699,36 @@ async def predict_for_location(request: UserPredictionRequest):
         # Format results for frontend consumption
         results = format_prediction_results(combinations)
         
+        # Send images for the predicted crops
+        image_send_result = None
+        try:
+            if combinations:
+                logger.info(f"Sending images for location-based prediction (type: {request.prediction_type})")
+                # Create a prediction result format for the image service
+                prediction_result = {
+                    "recommendations": [{"crop_name": combo.get("crop_name")} for combo in combinations],
+                    "generated_at": datetime.now().isoformat()
+                }
+                image_send_result = await process_prediction_and_send_images(
+                    prediction_result=prediction_result,
+                    prediction_type=request.prediction_type,
+                    additional_metadata={
+                        "location": {"latitude": request.location.latitude, "longitude": request.location.longitude},
+                        "timezone": request.timezone
+                    }
+                )
+        except Exception as e:
+            logger.error(f"Failed to send images for location-based prediction: {str(e)}")
+            # Don't fail the entire request if image sending fails
+            image_send_result = {"success": False, "error": str(e)}
+        
         # Create session for individual result access
         session_id = session_manager.create_session(results)
         results['session_id'] = session_id
+        
+        # Include image sending result if available
+        if image_send_result:
+            results["image_send_result"] = image_send_result
         
         logger.info(f"Successfully generated {len(combinations)} predictions for location, session: {session_id}")
         return PredictionResults(**results)
@@ -847,6 +922,40 @@ async def generate_crop_output(request: CropAdviceRequest):
     except Exception as e:
         logger.error(f"Crop output generation error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to generate crop output: {str(e)}")
+
+
+# Image sending test endpoint
+@app.post("/api/v1/test/send-images", tags=["Testing"])
+async def test_send_images(
+    crop_names: List[str] = Query(..., description="List of crop names to send"),
+    prediction_type: str = Query(..., pattern="^(short_term|long_term)$", description="Prediction type")
+):
+    """Test endpoint for sending crop images to imageSend API."""
+    try:
+        from src.services.image_service import send_images_to_api
+        
+        logger.info(f"Testing image sending for {len(crop_names)} crops: {crop_names}")
+        
+        result = await send_images_to_api(
+            crop_names=crop_names,
+            prediction_type=prediction_type,
+            additional_metadata={
+                "test_mode": True,
+                "requested_at": datetime.now().isoformat()
+            }
+        )
+        
+        return {
+            "test_mode": True,
+            "requested_crops": crop_names,
+            "prediction_type": prediction_type,
+            "result": result,
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"Image sending test error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Image sending test failed: {str(e)}")
 
 
 # Error handlers
