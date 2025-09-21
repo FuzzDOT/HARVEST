@@ -7,7 +7,7 @@ import pandas as pd
 from datetime import datetime
 
 from ..io_.loaders import load_parcel_by_id, load_weather_forecast
-from ..rules.crop_eligibility import filter_crops_by_month
+from ..rules.crop_eligibility import filter_crops_by_month_and_region
 from ..model.profit_calc import calculate_net_profit
 from ..model.ranker import rank_crops_by_profit, get_diverse_top_n_recommendations
 from ..io_.writers import save_short_term_recommendations
@@ -39,14 +39,14 @@ def predict_month_recommendations(
     if not parcel:
         raise ValueError(f"Parcel {parcel_id} not found")
     
-    # Get crops eligible for this month
-    eligible_crops = filter_crops_by_month(month)
+    # Get crops eligible for this month and region
+    eligible_crops = filter_crops_by_month_and_region(month, parcel['region'])
     if not eligible_crops:
         return {
             'parcel_id': parcel_id,
             'month': month,
             'recommendations': [],
-            'message': f'No crops are eligible for planting in month {month}'
+            'message': f'No crops are eligible for planting in month {month} in region {parcel["region"]}'
         }
     
     # Get weather forecast for parcel's region

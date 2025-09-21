@@ -7,7 +7,7 @@ import pandas as pd
 from datetime import datetime
 
 from ..io_.loaders import load_parcel_by_id, load_weather_normals
-from ..rules.crop_eligibility import filter_crops_by_month
+from ..rules.crop_eligibility import filter_crops_by_month_and_region
 from ..model.profit_calc import calculate_net_profit, calculate_annual_profit_potential
 from ..model.ranker import rank_crops_by_profit, apply_diversification_scoring
 from ..io_.writers import save_long_term_plan
@@ -119,8 +119,8 @@ def generate_monthly_plan_with_normals(
     if excluded_fertilizers is None:
         excluded_fertilizers = set()
         
-    # Get crops eligible for this month
-    eligible_crops = filter_crops_by_month(month)
+    # Get crops eligible for this month and region
+    eligible_crops = filter_crops_by_month_and_region(month, parcel['region'])
     
     # Filter out excluded crops for diversity
     eligible_crops = [crop for crop in eligible_crops 

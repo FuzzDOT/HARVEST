@@ -27,6 +27,30 @@ def filter_crops_by_month(month: int) -> List[Dict[str, Any]]:
     return eligible_crops
 
 
+def filter_crops_by_month_and_region(month: int, region: str) -> List[Dict[str, Any]]:
+    """
+    Filter crops that can be planted in the given month AND are available in the specified region.
+    
+    Args:
+        month: Month number (1-12)
+        region: Region/state code (e.g., 'FL', 'CA', 'TX')
+    
+    Returns:
+        List of eligible crop records for that region
+    """
+    crops = load_crops()
+    eligible_crops = []
+    
+    for _, crop in crops.iterrows():
+        crop_dict = crop.to_dict()
+        # Check both month eligibility AND region availability
+        if (is_crop_eligible_for_month(crop_dict, month) and 
+            crop_dict.get('state') == region):
+            eligible_crops.append(crop_dict)
+    
+    return eligible_crops
+
+
 def is_crop_eligible_for_month(crop: Dict[str, Any], month: int) -> bool:
     """
     Check if a crop can be planted in the given month.

@@ -15,7 +15,7 @@ from ..io_.loaders import (
 )
 from ..model.profit_calc import calculate_net_profit
 from ..model.yield_penalty import calculate_total_yield_penalty
-from ..rules.crop_eligibility import filter_crops_by_month
+from ..rules.crop_eligibility import filter_crops_by_month, filter_crops_by_month_and_region
 from ..rules.fertilizer_match import get_best_fertilizer_for_crop
 
 
