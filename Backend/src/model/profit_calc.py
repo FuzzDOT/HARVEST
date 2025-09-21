@@ -84,7 +84,8 @@ def calculate_net_profit(
     soil_conditions: Dict[str, float],
     month: int,
     price_per_unit: Optional[float] = None,
-    fertilizer_preference: str = "balanced"
+    fertilizer_preference: str = "balanced",
+    excluded_fertilizers: Optional[set] = None
 ) -> Dict[str, Any]:
     """
     Calculate net profit per acre for a crop under given conditions.
@@ -96,6 +97,7 @@ def calculate_net_profit(
         month: Month for fertilizer availability
         price_per_unit: Override price (if None, uses latest price)
         fertilizer_preference: Fertilizer selection preference
+        excluded_fertilizers: Set of fertilizer names to exclude for diversity
     
     Returns:
         Dictionary with profit calculation breakdown
@@ -109,8 +111,8 @@ def calculate_net_profit(
         crop['yield_lb_per_acre_est'], penalty_factors
     )
     
-    # Get best fertilizer for this crop and month
-    fertilizer = get_best_fertilizer_for_crop(crop, month, fertilizer_preference)
+    # Get best fertilizer for this crop and month (with diversity)
+    fertilizer = get_best_fertilizer_for_crop(crop, month, fertilizer_preference, excluded_fertilizers)
     
     # Calculate costs
     costs = calculate_production_costs(crop, fertilizer)

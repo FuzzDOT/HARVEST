@@ -59,9 +59,10 @@ def predict_month_recommendations(
             'message': f'No reliable weather forecast available for region {parcel["region"]}'
         }
     
-    # Calculate profit for each eligible crop
+    # Calculate profit for each eligible crop with fertilizer diversity
     profit_calculations = []
     soil_conditions = {'ph': parcel['soil_ph']}
+    used_fertilizers = set()  # Track used fertilizers for diversity
     
     for crop in eligible_crops:
         try:
@@ -71,11 +72,17 @@ def predict_month_recommendations(
                 crop=crop,
                 weather_conditions=weather_df,
                 soil_conditions=soil_conditions,
-                month=month
+                month=month,
+                excluded_fertilizers=used_fertilizers
             )
             profit_calculations.append(profit_calc)
+            
+            # Add the used fertilizer to the set for diversity
+            if profit_calc.get('fertilizer_used'):
+                used_fertilizers.add(profit_calc['fertilizer_used'])
+                
         except Exception as e:
-            print(f"Warning: Could not calculate profit for crop {crop['crop_name']}: {e}")
+            # Skip crops with missing data silently to avoid cluttering output
             continue
     
     if not profit_calculations:
@@ -143,6 +150,7 @@ def get_monthly_weather_forecast(
         
         # Filter by confidence threshold
         # Use default confidence since it's not in the CSV
+        month_weather = month_weather.copy()
         month_weather['confidence_percent'] = month_weather.get('confidence_percent', 85)
         reliable_weather = month_weather[month_weather['confidence_percent'] >= min_confidence]
         

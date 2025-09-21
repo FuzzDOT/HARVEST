@@ -40,18 +40,27 @@ def plan_annual_crop_rotation(
     # Generate monthly recommendations for the year
     monthly_plans = []
     all_monthly_profits = []
+    used_crops = set()  # Track crops already used for diversity
+    used_fertilizers = set()  # Track fertilizers already used for diversity
     
     for i in range(12):
         month = ((start_month + i - 1) % 12) + 1
         month_plan = generate_monthly_plan_with_normals(
             parcel=parcel,
             month=month,
-            min_profit_threshold=min_profit_threshold
+            min_profit_threshold=min_profit_threshold,
+            excluded_crops=used_crops,  # Pass excluded crops for diversity
+            excluded_fertilizers=used_fertilizers  # Pass excluded fertilizers for diversity
         )
         
         if month_plan['best_crop']:
             monthly_plans.append(month_plan)
             all_monthly_profits.append(month_plan['best_crop'])
+            # Add the selected crop to used crops for diversity
+            used_crops.add(month_plan['best_crop']['crop_name'])
+            # Add the selected fertilizer to used fertilizers for diversity
+            if month_plan['best_crop'].get('fertilizer_used'):
+                used_fertilizers.add(month_plan['best_crop']['fertilizer_used'])
     
     # Apply diversification scoring to encourage variety
     if all_monthly_profits:
@@ -88,7 +97,9 @@ def plan_annual_crop_rotation(
 def generate_monthly_plan_with_normals(
     parcel: Dict[str, Any],
     month: int,
-    min_profit_threshold: float = 0.0
+    min_profit_threshold: float = 0.0,
+    excluded_crops: Optional[set] = None,
+    excluded_fertilizers: Optional[set] = None
 ) -> Dict[str, Any]:
     """
     Generate crop recommendations for a month using historical weather normals.
@@ -97,12 +108,23 @@ def generate_monthly_plan_with_normals(
         parcel: Parcel information dictionary
         month: Month number (1-12)
         min_profit_threshold: Minimum profit threshold
+        excluded_crops: Set of crop names to exclude for diversity
+        excluded_fertilizers: Set of fertilizer names to exclude for diversity
     
     Returns:
         Monthly plan dictionary
     """
+    if excluded_crops is None:
+        excluded_crops = set()
+    if excluded_fertilizers is None:
+        excluded_fertilizers = set()
+        
     # Get crops eligible for this month
     eligible_crops = filter_crops_by_month(month)
+    
+    # Filter out excluded crops for diversity
+    eligible_crops = [crop for crop in eligible_crops 
+                     if crop.get('crop_name') not in excluded_crops]
     
     if not eligible_crops:
         return {
@@ -140,7 +162,8 @@ def generate_monthly_plan_with_normals(
                 crop=crop,
                 weather_conditions=weather_conditions_df,
                 soil_conditions=soil_conditions,
-                month=month
+                month=month,
+                excluded_fertilizers=excluded_fertilizers
             )
             
             # Only include crops meeting profit threshold
@@ -148,7 +171,7 @@ def generate_monthly_plan_with_normals(
                 profit_calculations.append(profit_calc)
                 
         except Exception as e:
-            print(f"Warning: Could not calculate profit for crop {crop.get('crop_name', 'Unknown')}: {e}")
+            # Skip crops with missing data silently to avoid cluttering output
             continue
     
     # Rank by profit
@@ -225,7 +248,8 @@ def optimize_rotation_sequence(monthly_plans: List[Dict[str, Any]]) -> List[Dict
             'month_name': plan['month_name'],
             'crop_name': plan['best_crop']['crop_name'],
             'profit_per_acre': plan['best_crop']['net_profit'],
-            'roi_percent': plan['best_crop']['roi_percent']
+            'roi_percent': plan['best_crop']['roi_percent'],
+            'fertilizer_used': plan['best_crop'].get('fertilizer_used', 'None')
         }
         
         # Add rotation benefits/concerns

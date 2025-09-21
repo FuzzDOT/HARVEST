@@ -55,16 +55,27 @@ def format_annual_plan_table(rotation_sequence: List[Dict[str, Any]]) -> str:
     if not rotation_sequence:
         return "No rotation plan available."
     
-    headers = ["Month", "Crop", "Profit/Acre", "ROI %", "Notes"]
+    headers = ["Month", "Crop", "Profit/Acre", "ROI %", "Fertilizer", "Notes"]
     rows = []
     
     for plan in rotation_sequence:
+        fertilizer = plan.get('fertilizer_used', 'None')
+        # Truncate long fertilizer names for better table formatting
+        if fertilizer and len(fertilizer) > 15:
+            fertilizer = fertilizer[:12] + "..."
+            
+        notes = plan.get('rotation_notes', '')
+        # Truncate long notes
+        if len(notes) > 25:
+            notes = notes[:22] + "..."
+            
         rows.append([
             f"{plan['month']:2d} - {plan['month_name'][:3]}",
             plan.get('crop_name', 'None'),
             f"${plan.get('profit_per_acre', 0):.2f}",
             f"{plan.get('roi_percent', 0):.1f}%",
-            plan.get('rotation_notes', '')[:30] + ('...' if len(plan.get('rotation_notes', '')) > 30 else '')
+            fertilizer,
+            notes
         ])
     
     return tabulate(rows, headers=headers, tablefmt="grid")

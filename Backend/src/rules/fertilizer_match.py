@@ -47,7 +47,8 @@ def is_fertilizer_available_in_month(fertilizer: Dict[str, Any], month: int) -> 
 def get_best_fertilizer_for_crop(
     crop: Dict[str, Any], 
     month: int,
-    preference: str = "balanced"
+    preference: str = "balanced",
+    excluded_fertilizers: Optional[set] = None
 ) -> Optional[Dict[str, Any]]:
     """
     Get the best fertilizer for a crop based on preference criteria.
@@ -56,14 +57,25 @@ def get_best_fertilizer_for_crop(
         crop: Crop specification dictionary
         month: Month number (1-12)
         preference: Selection criteria ("balanced", "nitrogen", "phosphorus", "potassium", "cost")
+        excluded_fertilizers: Set of fertilizer names to exclude for diversity
     
     Returns:
         Best fertilizer record or None if no suitable fertilizer found
     """
+    if excluded_fertilizers is None:
+        excluded_fertilizers = set()
+        
     suitable_fertilizers = find_suitable_fertilizers(crop, month)
     
+    # Filter out excluded fertilizers for diversity
+    suitable_fertilizers = [f for f in suitable_fertilizers 
+                          if f.get('fertilizer_name') not in excluded_fertilizers]
+    
     if not suitable_fertilizers:
-        return None
+        # If all fertilizers are excluded, fall back to any suitable fertilizer
+        suitable_fertilizers = find_suitable_fertilizers(crop, month)
+        if not suitable_fertilizers:
+            return None
     
     if preference == "balanced":
         # Prefer fertilizers with balanced NPK ratios
@@ -83,6 +95,27 @@ def get_best_fertilizer_for_crop(
     else:
         # Default to first available
         return suitable_fertilizers[0]
+
+
+def get_diverse_fertilizer_for_crop(
+    crop: Dict[str, Any], 
+    month: int,
+    used_fertilizers: set,
+    preference: str = "balanced"
+) -> Optional[Dict[str, Any]]:
+    """
+    Get a fertilizer for a crop ensuring diversity from previously used fertilizers.
+    
+    Args:
+        crop: Crop specification dictionary
+        month: Month number (1-12)
+        used_fertilizers: Set of already used fertilizer names
+        preference: Selection criteria ("balanced", "nitrogen", "phosphorus", "potassium", "cost")
+    
+    Returns:
+        Diverse fertilizer record or None if no suitable fertilizer found
+    """
+    return get_best_fertilizer_for_crop(crop, month, preference, used_fertilizers)
 
 
 def npk_variance(fertilizer: Dict[str, Any]) -> float:
