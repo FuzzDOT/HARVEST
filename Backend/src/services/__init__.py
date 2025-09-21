@@ -148,9 +148,9 @@ def get_weather_for_location(
         if not region_weather.empty:
             latest = region_weather.iloc[-1]
             return {
-                'temperature': latest['forecast_temp_f'],
-                'rainfall': latest['forecast_rainfall_inches'],
-                'confidence': latest['confidence_percent']
+                'temperature': latest['avg_temp_f'],
+                'rainfall': latest['avg_rainfall_inches'],
+                'confidence': latest.get('confidence_percent', 85)  # Default confidence if not available
             }
     
     # Fallback to normals

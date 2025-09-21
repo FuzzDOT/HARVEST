@@ -177,11 +177,11 @@ def display_csv_format(results: dict):
         return
     
     # Print CSV header
-    print("rank,crop_id,crop_name,profit_per_acre,roi_percent,adjusted_yield,confidence")
+    print("rank,crop_name,profit_per_acre,roi_percent,adjusted_yield,confidence")
     
     # Print each recommendation
     for rec in results['recommendations']:
-        print(f"{rec['rank']},{rec['crop_id']},{rec['crop_name']},"
+        print(f"{rec['rank']},{rec['crop_name']},"
               f"{rec['net_profit']:.2f},{rec['roi_percent']:.1f},"
               f"{rec['adjusted_yield']:.1f},{rec.get('recommendation_confidence', 0):.1f}")
 
