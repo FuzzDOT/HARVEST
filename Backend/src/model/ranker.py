@@ -190,15 +190,15 @@ def apply_diversification_scoring(
     # Count how many times each crop appears (for multi-parcel scenarios)
     crop_counts = {}
     for calc in profit_calculations:
-        crop_id = calc['crop_id']
-        crop_counts[crop_id] = crop_counts.get(crop_id, 0) + 1
+        crop_name = calc['crop_name']
+        crop_counts[crop_name] = crop_counts.get(crop_name, 0) + 1
     
     # Apply diversification bonus (lower count = higher bonus)
     max_count = max(crop_counts.values()) if crop_counts else 1
     
     for calc in profit_calculations:
-        crop_id = calc['crop_id']
-        crop_frequency = crop_counts[crop_id]
+        crop_name = calc['crop_name']
+        crop_frequency = crop_counts[crop_name]
         
         # Calculate diversification multiplier (rare crops get bonus)
         diversification_multiplier = 1 + (diversification_bonus * (max_count - crop_frequency) / max_count)

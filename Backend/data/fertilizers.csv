@@ -1,6 +1,21 @@
-fertilizer_id,name,nitrogen_percent,phosphorus_percent,potassium_percent,price_per_lb,valid_months
-NPK_10_10_10,Balanced NPK,10,10,10,0.50,"1,2,3,4,5,6,7,8,9,10,11,12"
-UREA_46_0_0,Urea,46,0,0,0.45,"3,4,5,6,7,8,9"
-DAP_18_46_0,Diammonium Phosphate,18,46,0,0.65,"2,3,4,10,11"
-KCL_0_0_60,Potassium Chloride,0,0,60,0.40,"3,4,5,9,10,11"
-ORGANIC_5_3_3,Organic Compost,5,3,3,0.75,"1,2,3,4,5,6,7,8,9,10,11,12"
+fertilizer_name,type,cost_usd_per_bag,bag_weight_lb,cost_usd_per_lb,recommended_rate_lb_per_acre,compatible_crops
+Urea 46-0-0,inorganic,20.0,50.0,0.4,170,Corn (field);Wheat (winter);Wheat (spring);Sorghum;Canola (rapeseed)
+UAN 32-0-0,inorganic,27.0,50.0,0.54,127,Corn (field);Wheat (winter);Sorghum
+Ammonium Nitrate 34-0-0,inorganic,35.0,50.0,0.7,137,Wheat (winter);Wheat (spring);Barley
+DAP 18-46-0,inorganic,28.0,50.0,0.56,141,Corn (field);Soybean;Canola (rapeseed)
+MAP 11-52-0,inorganic,22.0,50.0,0.44,97,Corn (field);Soybean;Barley;Oats
+MOP 0-0-60,inorganic,39.0,50.0,0.78,92,Corn (field);Soybean;Wheat (winter);Sorghum;Sunflower
+SOP 0-0-50,inorganic,24.0,50.0,0.48,173,Potato;Tomato (processing);Onion (bulb);Peanut
+CAN 27-0-0,inorganic,18.0,50.0,0.36,171,Wheat (spring);Barley;Oats;Canola (rapeseed)
+Ammonium Sulfate 21-0-0-24S,inorganic,36.0,50.0,0.72,172,Canola (rapeseed);Onion (bulb)
+TSP 0-46-0,inorganic,24.0,50.0,0.48,82,Peanut;Soybean;Tomato (processing)
+Compost (mixed),organic,27.0,50.0,0.54,231,Lettuce;Spinach;Carrot;Tomato (processing);Onion (bulb)
+Poultry Manure (dried),organic,25.0,50.0,0.5,199,Corn (field);Tomato (processing);Onion (bulb)
+Cattle Manure (composted),organic,11.0,50.0,0.22,344,Alfalfa;Carrot;Potato
+Bone Meal,organic,28.0,50.0,0.56,365,Carrot;Onion (bulb);Potato
+Blood Meal,organic,24.0,50.0,0.48,211,Lettuce;Spinach;Tomato (processing)
+Fish Emulsion,organic,28.0,50.0,0.56,316,Lettuce;Spinach;Tomato (processing)
+Kelp Meal,organic,11.0,50.0,0.22,182,Lettuce;Spinach;Onion (bulb)
+Feather Meal,organic,27.0,50.0,0.54,218,Corn (field);Wheat (winter)
+Rock Phosphate,organic,24.0,50.0,0.48,184,Peanut;Soybean;Carrot
+Langbeinite 0-0-22-22S-11Mg,organic,14.0,50.0,0.28,220,Potato;Onion (bulb);Tomato (processing)

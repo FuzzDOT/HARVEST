@@ -1,11 +1,501 @@
-crop_id,name,growth_window_start,growth_window_end,ideal_temp_min,ideal_temp_max,ideal_rain_min,ideal_rain_max,base_yield_per_acre,cost_per_acre
-CORN,Corn,3,6,60,85,20,40,150,300
-SOYBEAN,Soybean,4,7,65,85,25,35,45,250
-WHEAT,Winter Wheat,9,11,50,75,15,30,60,200
-TOMATO,Tomato,4,6,65,80,15,25,25,400
-POTATO,Potato,3,5,55,70,20,30,300,350
-COTTON,Cotton,4,9,70,90,20,35,800,400
-RICE,Rice,5,9,75,95,30,50,120,450
-SUNFLOWER,Sunflower,5,9,60,80,15,25,50,200
-BARLEY,Barley,8,10,45,70,15,25,80,180
-OATS,Oats,8,10,50,75,20,30,70,160
+state,crop_name,category,yield_lb_per_acre_est,price_usd_per_lb_est
+AL,Cotton,fiber,1375,0.81
+AL,Peanut,legume,3763,0.26
+AL,Rice,grain,6270,0.18
+AL,Tomato (processing),vegetable,29241,0.1
+AL,Onion (bulb),vegetable,18635,0.3
+AL,Corn (field),grain,10622,0.08
+AL,Soybean,legume,3270,0.12
+AL,Sorghum,grain,5587,0.08
+AL,Sunflower,oilseed,1661,0.31
+AL,Lettuce,leafy,11952,0.63
+AK,Wheat (spring),grain,2080,0.1
+AK,Barley,grain,2172,0.1
+AK,Oats,grain,1943,0.09
+AK,Canola (rapeseed),oilseed,1852,0.26
+AK,Sunflower,oilseed,1862,0.31
+AK,Potato,root,24187,0.28
+AK,Alfalfa,forage,9348,0.12
+AK,Carrot,root,21806,0.36
+AK,Lettuce,leafy,11193,0.6
+AK,Soybean,legume,3156,0.12
+AZ,Alfalfa,forage,10434,0.12
+AZ,Lettuce,leafy,12222,0.58
+AZ,Tomato (processing),vegetable,30524,0.1
+AZ,Onion (bulb),vegetable,20357,0.31
+AZ,Potato,root,25135,0.26
+AZ,Wheat (winter),grain,2626,0.1
+AZ,Barley,grain,2143,0.08
+AZ,Canola (rapeseed),oilseed,1708,0.24
+AZ,Sunflower,oilseed,2015,0.3
+AZ,Carrot,root,21549,0.33
+AR,Rice,grain,6812,0.18
+AR,Cotton,fiber,1570,0.81
+AR,Soybean,legume,3190,0.12
+AR,Corn (field),grain,9630,0.08
+AR,Tomato (processing),vegetable,29540,0.1
+AR,Onion (bulb),vegetable,18186,0.28
+AR,Peanut,legume,3639,0.24
+AR,Sorghum,grain,6331,0.08
+AR,Sunflower,oilseed,1822,0.29
+AR,Alfalfa,forage,9752,0.12
+CA,Alfalfa,forage,9470,0.12
+CA,Lettuce,leafy,11633,0.59
+CA,Tomato (processing),vegetable,31168,0.09
+CA,Onion (bulb),vegetable,20019,0.29
+CA,Potato,root,25893,0.26
+CA,Wheat (winter),grain,2480,0.1
+CA,Barley,grain,2185,0.09
+CA,Canola (rapeseed),oilseed,1591,0.23
+CA,Sunflower,oilseed,1656,0.28
+CA,Carrot,root,18551,0.36
+CO,Alfalfa,forage,11039,0.12
+CO,Lettuce,leafy,12708,0.59
+CO,Tomato (processing),vegetable,29506,0.1
+CO,Onion (bulb),vegetable,19457,0.29
+CO,Potato,root,21545,0.26
+CO,Wheat (winter),grain,2547,0.1
+CO,Barley,grain,1945,0.09
+CO,Canola (rapeseed),oilseed,1723,0.25
+CO,Sunflower,oilseed,1803,0.3
+CO,Carrot,root,19617,0.38
+CT,Corn (field),grain,10143,0.08
+CT,Soybean,legume,3326,0.12
+CT,Wheat (winter),grain,2571,0.1
+CT,Barley,grain,1990,0.1
+CT,Sunflower,oilseed,1666,0.29
+CT,Potato,root,22246,0.25
+CT,Tomato (processing),vegetable,29466,0.1
+CT,Onion (bulb),vegetable,18375,0.28
+CT,Carrot,root,21341,0.36
+CT,Alfalfa,forage,12000,0.13
+DE,Corn (field),grain,9208,0.08
+DE,Soybean,legume,3064,0.11
+DE,Wheat (winter),grain,2416,0.1
+DE,Barley,grain,2175,0.09
+DE,Sunflower,oilseed,1822,0.32
+DE,Potato,root,22928,0.25
+DE,Tomato (processing),vegetable,28832,0.09
+DE,Onion (bulb),vegetable,22828,0.3
+DE,Carrot,root,21572,0.35
+DE,Alfalfa,forage,9052,0.12
+FL,Cotton,fiber,1412,0.76
+FL,Peanut,legume,3270,0.28
+FL,Rice,grain,6494,0.21
+FL,Tomato (processing),vegetable,30923,0.1
+FL,Onion (bulb),vegetable,19934,0.3
+FL,Corn (field),grain,10356,0.08
+FL,Soybean,legume,2705,0.12
+FL,Sorghum,grain,6082,0.07
+FL,Sunflower,oilseed,1823,0.32
+FL,Lettuce,leafy,12274,0.6
+GA,Cotton,fiber,1526,0.85
+GA,Peanut,legume,3809,0.24
+GA,Rice,grain,7860,0.2
+GA,Tomato (processing),vegetable,27061,0.1
+GA,Onion (bulb),vegetable,22641,0.28
+GA,Corn (field),grain,9856,0.09
+GA,Soybean,legume,3350,0.12
+GA,Sorghum,grain,5570,0.08
+GA,Sunflower,oilseed,1743,0.31
+GA,Lettuce,leafy,11843,0.6
+HI,Cotton,fiber,1668,0.81
+HI,Peanut,legume,3680,0.25
+HI,Rice,grain,6972,0.18
+HI,Tomato (processing),vegetable,27074,0.1
+HI,Onion (bulb),vegetable,19465,0.29
+HI,Corn (field),grain,8938,0.08
+HI,Soybean,legume,2883,0.12
+HI,Sorghum,grain,6481,0.08
+HI,Sunflower,oilseed,1992,0.31
+HI,Lettuce,leafy,11331,0.6
+ID,Alfalfa,forage,10193,0.12
+ID,Lettuce,leafy,10958,0.61
+ID,Tomato (processing),vegetable,30547,0.1
+ID,Onion (bulb),vegetable,23002,0.34
+ID,Potato,root,24425,0.24
+ID,Wheat (winter),grain,2381,0.09
+ID,Barley,grain,2412,0.09
+ID,Canola (rapeseed),oilseed,1705,0.24
+ID,Sunflower,oilseed,1776,0.27
+ID,Carrot,root,19152,0.33
+IL,Corn (field),grain,9924,0.08
+IL,Soybean,legume,2647,0.11
+IL,Wheat (winter),grain,2242,0.11
+IL,Barley,grain,2523,0.09
+IL,Sunflower,oilseed,1631,0.34
+IL,Potato,root,25683,0.25
+IL,Tomato (processing),vegetable,27631,0.11
+IL,Onion (bulb),vegetable,21243,0.3
+IL,Carrot,root,19398,0.36
+IL,Alfalfa,forage,8900,0.12
+IN,Corn (field),grain,9786,0.08
+IN,Soybean,legume,2866,0.12
+IN,Wheat (winter),grain,2702,0.1
+IN,Barley,grain,2261,0.09
+IN,Sunflower,oilseed,1800,0.3
+IN,Potato,root,25632,0.24
+IN,Tomato (processing),vegetable,35023,0.1
+IN,Onion (bulb),vegetable,20617,0.32
+IN,Carrot,root,18220,0.34
+IN,Alfalfa,forage,10210,0.13
+IA,Corn (field),grain,8604,0.08
+IA,Soybean,legume,3109,0.13
+IA,Wheat (winter),grain,2405,0.09
+IA,Barley,grain,2209,0.09
+IA,Sunflower,oilseed,1785,0.3
+IA,Potato,root,25305,0.25
+IA,Tomato (processing),vegetable,24000,0.11
+IA,Onion (bulb),vegetable,20282,0.3
+IA,Carrot,root,19404,0.36
+IA,Alfalfa,forage,10262,0.11
+KS,Corn (field),grain,8772,0.09
+KS,Soybean,legume,2921,0.13
+KS,Wheat (winter),grain,2289,0.1
+KS,Sorghum,grain,6624,0.08
+KS,Sunflower,oilseed,2049,0.31
+KS,Canola (rapeseed),oilseed,1863,0.26
+KS,Barley,grain,2277,0.1
+KS,Oats,grain,1952,0.09
+KS,Alfalfa,forage,9442,0.12
+KS,Potato,root,22643,0.26
+KY,Corn (field),grain,9847,0.08
+KY,Soybean,legume,3180,0.13
+KY,Wheat (winter),grain,2646,0.11
+KY,Barley,grain,2188,0.08
+KY,Sunflower,oilseed,1725,0.28
+KY,Potato,root,26275,0.27
+KY,Tomato (processing),vegetable,27567,0.1
+KY,Onion (bulb),vegetable,18053,0.3
+KY,Carrot,root,20499,0.34
+KY,Alfalfa,forage,10487,0.13
+LA,Rice,grain,7170,0.18
+LA,Cotton,fiber,1549,0.8
+LA,Soybean,legume,2504,0.13
+LA,Corn (field),grain,10472,0.08
+LA,Tomato (processing),vegetable,33542,0.09
+LA,Onion (bulb),vegetable,21354,0.31
+LA,Peanut,legume,3727,0.24
+LA,Sorghum,grain,6111,0.08
+LA,Sunflower,oilseed,1838,0.3
+LA,Alfalfa,forage,9881,0.11
+ME,Wheat (spring),grain,2267,0.1
+ME,Barley,grain,2013,0.09
+ME,Oats,grain,2237,0.09
+ME,Canola (rapeseed),oilseed,1681,0.24
+ME,Sunflower,oilseed,1921,0.3
+ME,Potato,root,27657,0.25
+ME,Alfalfa,forage,10673,0.13
+ME,Carrot,root,23724,0.36
+ME,Lettuce,leafy,10076,0.59
+ME,Soybean,legume,2890,0.13
+MD,Corn (field),grain,11047,0.08
+MD,Soybean,legume,2699,0.11
+MD,Wheat (winter),grain,2341,0.09
+MD,Barley,grain,2292,0.09
+MD,Sunflower,oilseed,1596,0.3
+MD,Potato,root,25108,0.22
+MD,Tomato (processing),vegetable,31102,0.1
+MD,Onion (bulb),vegetable,20221,0.31
+MD,Carrot,root,20366,0.36
+MD,Alfalfa,forage,9436,0.12
+MA,Corn (field),grain,10157,0.08
+MA,Soybean,legume,2905,0.12
+MA,Wheat (winter),grain,2446,0.1
+MA,Barley,grain,2345,0.09
+MA,Sunflower,oilseed,1613,0.27
+MA,Potato,root,20332,0.23
+MA,Tomato (processing),vegetable,31798,0.1
+MA,Onion (bulb),vegetable,20316,0.3
+MA,Carrot,root,22124,0.37
+MA,Alfalfa,forage,11082,0.12
+MI,Wheat (spring),grain,2052,0.1
+MI,Barley,grain,1939,0.09
+MI,Oats,grain,1942,0.09
+MI,Canola (rapeseed),oilseed,2047,0.26
+MI,Sunflower,oilseed,1856,0.28
+MI,Potato,root,25949,0.24
+MI,Alfalfa,forage,8535,0.12
+MI,Carrot,root,19031,0.37
+MI,Lettuce,leafy,10973,0.58
+MI,Soybean,legume,3102,0.12
+MN,Wheat (spring),grain,2257,0.1
+MN,Barley,grain,2432,0.09
+MN,Oats,grain,1763,0.09
+MN,Canola (rapeseed),oilseed,1752,0.26
+MN,Sunflower,oilseed,1855,0.32
+MN,Potato,root,25697,0.25
+MN,Alfalfa,forage,11661,0.13
+MN,Carrot,root,20256,0.35
+MN,Lettuce,leafy,11188,0.63
+MN,Soybean,legume,2993,0.12
+MS,Rice,grain,6533,0.2
+MS,Cotton,fiber,1251,0.74
+MS,Soybean,legume,2889,0.11
+MS,Corn (field),grain,11549,0.08
+MS,Tomato (processing),vegetable,27690,0.11
+MS,Onion (bulb),vegetable,19348,0.31
+MS,Peanut,legume,3551,0.25
+MS,Sorghum,grain,5837,0.08
+MS,Sunflower,oilseed,1635,0.32
+MS,Alfalfa,forage,12000,0.12
+MO,Corn (field),grain,11146,0.08
+MO,Soybean,legume,3139,0.12
+MO,Wheat (winter),grain,2465,0.1
+MO,Barley,grain,2275,0.09
+MO,Sunflower,oilseed,1895,0.29
+MO,Potato,root,25733,0.26
+MO,Tomato (processing),vegetable,31089,0.1
+MO,Onion (bulb),vegetable,21496,0.3
+MO,Carrot,root,19463,0.32
+MO,Alfalfa,forage,8803,0.11
+MT,Alfalfa,forage,10716,0.13
+MT,Lettuce,leafy,10557,0.58
+MT,Tomato (processing),vegetable,28695,0.09
+MT,Onion (bulb),vegetable,20695,0.34
+MT,Potato,root,25930,0.24
+MT,Wheat (winter),grain,2440,0.09
+MT,Barley,grain,2184,0.09
+MT,Canola (rapeseed),oilseed,1849,0.26
+MT,Sunflower,oilseed,1700,0.31
+MT,Carrot,root,22606,0.37
+NE,Corn (field),grain,9289,0.08
+NE,Soybean,legume,2954,0.13
+NE,Wheat (winter),grain,2411,0.11
+NE,Sorghum,grain,6063,0.09
+NE,Sunflower,oilseed,2025,0.3
+NE,Canola (rapeseed),oilseed,1664,0.25
+NE,Barley,grain,2279,0.09
+NE,Oats,grain,2101,0.08
+NE,Alfalfa,forage,10918,0.12
+NE,Potato,root,23426,0.22
+NV,Alfalfa,forage,9339,0.11
+NV,Lettuce,leafy,11827,0.61
+NV,Tomato (processing),vegetable,29617,0.1
+NV,Onion (bulb),vegetable,18386,0.3
+NV,Potato,root,26325,0.26
+NV,Wheat (winter),grain,2611,0.1
+NV,Barley,grain,2558,0.09
+NV,Canola (rapeseed),oilseed,1755,0.25
+NV,Sunflower,oilseed,1651,0.29
+NV,Carrot,root,18577,0.33
+NH,Wheat (spring),grain,2258,0.1
+NH,Barley,grain,2065,0.09
+NH,Oats,grain,2118,0.09
+NH,Canola (rapeseed),oilseed,1705,0.25
+NH,Sunflower,oilseed,1827,0.31
+NH,Potato,root,24864,0.23
+NH,Alfalfa,forage,9280,0.12
+NH,Carrot,root,17672,0.35
+NH,Lettuce,leafy,13198,0.64
+NH,Soybean,legume,3087,0.12
+NJ,Corn (field),grain,9074,0.07
+NJ,Soybean,legume,2742,0.12
+NJ,Wheat (winter),grain,2899,0.1
+NJ,Barley,grain,2052,0.08
+NJ,Sunflower,oilseed,2032,0.3
+NJ,Potato,root,25498,0.23
+NJ,Tomato (processing),vegetable,26035,0.11
+NJ,Onion (bulb),vegetable,19322,0.28
+NJ,Carrot,root,21300,0.34
+NJ,Alfalfa,forage,8580,0.12
+NM,Alfalfa,forage,9537,0.12
+NM,Lettuce,leafy,11397,0.64
+NM,Tomato (processing),vegetable,31298,0.1
+NM,Onion (bulb),vegetable,20716,0.31
+NM,Potato,root,26076,0.23
+NM,Wheat (winter),grain,2547,0.09
+NM,Barley,grain,2278,0.08
+NM,Canola (rapeseed),oilseed,1615,0.24
+NM,Sunflower,oilseed,1834,0.31
+NM,Carrot,root,22321,0.34
+NY,Corn (field),grain,10025,0.08
+NY,Soybean,legume,2851,0.12
+NY,Wheat (winter),grain,2393,0.1
+NY,Barley,grain,2439,0.09
+NY,Sunflower,oilseed,1452,0.28
+NY,Potato,root,30000,0.27
+NY,Tomato (processing),vegetable,25351,0.1
+NY,Onion (bulb),vegetable,19542,0.3
+NY,Carrot,root,18218,0.35
+NY,Alfalfa,forage,10419,0.12
+NC,Corn (field),grain,10559,0.07
+NC,Soybean,legume,3041,0.13
+NC,Wheat (winter),grain,2471,0.1
+NC,Barley,grain,1895,0.09
+NC,Sunflower,oilseed,1743,0.3
+NC,Potato,root,24651,0.27
+NC,Tomato (processing),vegetable,27351,0.11
+NC,Onion (bulb),vegetable,20511,0.31
+NC,Carrot,root,20283,0.33
+NC,Alfalfa,forage,9740,0.13
+ND,Corn (field),grain,9985,0.07
+ND,Soybean,legume,2917,0.11
+ND,Wheat (winter),grain,2158,0.1
+ND,Sorghum,grain,6231,0.07
+ND,Sunflower,oilseed,1440,0.29
+ND,Canola (rapeseed),oilseed,1839,0.26
+ND,Barley,grain,1968,0.09
+ND,Oats,grain,2055,0.09
+ND,Alfalfa,forage,10336,0.13
+ND,Potato,root,24666,0.25
+OH,Corn (field),grain,10500,0.08
+OH,Soybean,legume,2874,0.13
+OH,Wheat (winter),grain,2404,0.1
+OH,Barley,grain,2463,0.09
+OH,Sunflower,oilseed,1738,0.29
+OH,Potato,root,24508,0.25
+OH,Tomato (processing),vegetable,24595,0.1
+OH,Onion (bulb),vegetable,18748,0.29
+OH,Carrot,root,18458,0.31
+OH,Alfalfa,forage,9839,0.11
+OK,Corn (field),grain,9803,0.08
+OK,Soybean,legume,2986,0.11
+OK,Wheat (winter),grain,2304,0.11
+OK,Sorghum,grain,6268,0.08
+OK,Sunflower,oilseed,1893,0.3
+OK,Canola (rapeseed),oilseed,1901,0.25
+OK,Barley,grain,2197,0.09
+OK,Oats,grain,1805,0.09
+OK,Alfalfa,forage,10548,0.11
+OK,Potato,root,22955,0.25
+OR,Alfalfa,forage,10902,0.12
+OR,Lettuce,leafy,10563,0.53
+OR,Tomato (processing),vegetable,33506,0.1
+OR,Onion (bulb),vegetable,21227,0.3
+OR,Potato,root,22760,0.24
+OR,Wheat (winter),grain,2511,0.1
+OR,Barley,grain,2166,0.09
+OR,Canola (rapeseed),oilseed,1822,0.25
+OR,Sunflower,oilseed,1916,0.31
+OR,Carrot,root,16404,0.32
+PA,Corn (field),grain,10950,0.08
+PA,Soybean,legume,2553,0.11
+PA,Wheat (winter),grain,2686,0.1
+PA,Barley,grain,2290,0.1
+PA,Sunflower,oilseed,1671,0.29
+PA,Potato,root,24401,0.25
+PA,Tomato (processing),vegetable,34917,0.09
+PA,Onion (bulb),vegetable,21817,0.33
+PA,Carrot,root,21368,0.33
+PA,Alfalfa,forage,10354,0.12
+RI,Corn (field),grain,10508,0.08
+RI,Soybean,legume,3152,0.12
+RI,Wheat (winter),grain,2143,0.1
+RI,Barley,grain,2102,0.09
+RI,Sunflower,oilseed,2042,0.28
+RI,Potato,root,27718,0.27
+RI,Tomato (processing),vegetable,33241,0.1
+RI,Onion (bulb),vegetable,20324,0.3
+RI,Carrot,root,20635,0.33
+RI,Alfalfa,forage,8957,0.12
+SC,Cotton,fiber,1490,0.8
+SC,Peanut,legume,3750,0.27
+SC,Rice,grain,7139,0.2
+SC,Tomato (processing),vegetable,29513,0.1
+SC,Onion (bulb),vegetable,19758,0.28
+SC,Corn (field),grain,8999,0.08
+SC,Soybean,legume,3093,0.12
+SC,Sorghum,grain,5941,0.07
+SC,Sunflower,oilseed,1952,0.31
+SC,Lettuce,leafy,12037,0.63
+SD,Corn (field),grain,9133,0.08
+SD,Soybean,legume,3091,0.12
+SD,Wheat (winter),grain,2719,0.11
+SD,Sorghum,grain,5402,0.08
+SD,Sunflower,oilseed,1831,0.3
+SD,Canola (rapeseed),oilseed,1716,0.25
+SD,Barley,grain,2111,0.09
+SD,Oats,grain,2049,0.09
+SD,Alfalfa,forage,10195,0.12
+SD,Potato,root,22721,0.25
+TN,Corn (field),grain,11150,0.08
+TN,Soybean,legume,2492,0.11
+TN,Wheat (winter),grain,2505,0.09
+TN,Barley,grain,2179,0.09
+TN,Sunflower,oilseed,1440,0.32
+TN,Potato,root,28122,0.25
+TN,Tomato (processing),vegetable,29088,0.09
+TN,Onion (bulb),vegetable,18569,0.29
+TN,Carrot,root,22283,0.34
+TN,Alfalfa,forage,9731,0.13
+TX,Corn (field),grain,10028,0.09
+TX,Soybean,legume,2977,0.13
+TX,Wheat (winter),grain,2573,0.1
+TX,Sorghum,grain,6408,0.09
+TX,Sunflower,oilseed,1939,0.29
+TX,Canola (rapeseed),oilseed,1729,0.25
+TX,Barley,grain,2205,0.09
+TX,Oats,grain,2002,0.09
+TX,Alfalfa,forage,10339,0.12
+TX,Potato,root,26333,0.23
+UT,Alfalfa,forage,8846,0.11
+UT,Lettuce,leafy,12080,0.6
+UT,Tomato (processing),vegetable,31994,0.1
+UT,Onion (bulb),vegetable,19348,0.28
+UT,Potato,root,24906,0.24
+UT,Wheat (winter),grain,2298,0.1
+UT,Barley,grain,2211,0.09
+UT,Canola (rapeseed),oilseed,1517,0.23
+UT,Sunflower,oilseed,1768,0.3
+UT,Carrot,root,19955,0.35
+VT,Wheat (spring),grain,2366,0.1
+VT,Barley,grain,1993,0.09
+VT,Oats,grain,2046,0.09
+VT,Canola (rapeseed),oilseed,1737,0.27
+VT,Sunflower,oilseed,1554,0.26
+VT,Potato,root,23884,0.24
+VT,Alfalfa,forage,10030,0.12
+VT,Carrot,root,21678,0.34
+VT,Lettuce,leafy,11172,0.58
+VT,Soybean,legume,2631,0.12
+VA,Corn (field),grain,10082,0.08
+VA,Soybean,legume,3381,0.12
+VA,Wheat (winter),grain,2912,0.1
+VA,Barley,grain,1975,0.09
+VA,Sunflower,oilseed,1645,0.3
+VA,Potato,root,25794,0.24
+VA,Tomato (processing),vegetable,28506,0.1
+VA,Onion (bulb),vegetable,21852,0.31
+VA,Carrot,root,20847,0.38
+VA,Alfalfa,forage,8495,0.13
+WA,Alfalfa,forage,9306,0.12
+WA,Lettuce,leafy,11451,0.6
+WA,Tomato (processing),vegetable,34517,0.1
+WA,Onion (bulb),vegetable,20662,0.3
+WA,Potato,root,25151,0.25
+WA,Wheat (winter),grain,2589,0.1
+WA,Barley,grain,2489,0.1
+WA,Canola (rapeseed),oilseed,1884,0.25
+WA,Sunflower,oilseed,1787,0.28
+WA,Carrot,root,21385,0.37
+WV,Corn (field),grain,10709,0.08
+WV,Soybean,legume,3288,0.12
+WV,Wheat (winter),grain,2428,0.1
+WV,Barley,grain,1760,0.09
+WV,Sunflower,oilseed,1440,0.31
+WV,Potato,root,25903,0.23
+WV,Tomato (processing),vegetable,27210,0.1
+WV,Onion (bulb),vegetable,22192,0.29
+WV,Carrot,root,23588,0.34
+WV,Alfalfa,forage,10326,0.12
+WI,Wheat (spring),grain,2223,0.11
+WI,Barley,grain,2180,0.09
+WI,Oats,grain,1781,0.09
+WI,Canola (rapeseed),oilseed,1693,0.25
+WI,Sunflower,oilseed,1804,0.31
+WI,Potato,root,24787,0.25
+WI,Alfalfa,forage,10493,0.12
+WI,Carrot,root,18333,0.33
+WI,Lettuce,leafy,11604,0.63
+WI,Soybean,legume,3106,0.11
+WY,Alfalfa,forage,8775,0.12
+WY,Lettuce,leafy,12706,0.61
+WY,Tomato (processing),vegetable,31516,0.1
+WY,Onion (bulb),vegetable,20529,0.28
+WY,Potato,root,24034,0.25
+WY,Wheat (winter),grain,2795,0.1
+WY,Barley,grain,2431,0.1
+WY,Canola (rapeseed),oilseed,1850,0.25
+WY,Sunflower,oilseed,1817,0.31
+WY,Carrot,root,21318,0.35

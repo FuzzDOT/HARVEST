@@ -65,15 +65,17 @@ def predict_month_recommendations(
     
     for crop in eligible_crops:
         try:
+            # Convert weather_data dict to DataFrame as required by calculate_net_profit
+            weather_df = pd.DataFrame([weather_data])
             profit_calc = calculate_net_profit(
                 crop=crop,
-                weather_conditions=weather_data,
+                weather_conditions=weather_df,
                 soil_conditions=soil_conditions,
                 month=month
             )
             profit_calculations.append(profit_calc)
         except Exception as e:
-            print(f"Warning: Could not calculate profit for crop {crop['crop_id']}: {e}")
+            print(f"Warning: Could not calculate profit for crop {crop['crop_name']}: {e}")
             continue
     
     if not profit_calculations:
@@ -140,19 +142,21 @@ def get_monthly_weather_forecast(
             return None
         
         # Filter by confidence threshold
+        # Use default confidence since it's not in the CSV
+        month_weather['confidence_percent'] = month_weather.get('confidence_percent', 85)
         reliable_weather = month_weather[month_weather['confidence_percent'] >= min_confidence]
         
         if reliable_weather.empty:
             return None
         
         # Calculate averages for the month
-        avg_temp = reliable_weather['forecast_temp_f'].mean()
-        total_rain = reliable_weather['forecast_rainfall_inches'].sum()
+        avg_temp = reliable_weather['avg_temp_f'].mean()
+        total_rain = reliable_weather['avg_rainfall_inches'].sum()
         avg_confidence = reliable_weather['confidence_percent'].mean()
         
         return {
-            'temperature': avg_temp,
-            'rainfall': total_rain,
+            'avg_temp_f': avg_temp,
+            'avg_rainfall_inches': total_rain,
             'confidence': avg_confidence,
             'forecast_days': len(reliable_weather)
         }

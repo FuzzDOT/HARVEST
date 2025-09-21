@@ -134,9 +134,11 @@ def generate_monthly_plan_with_normals(
     
     for crop in eligible_crops:
         try:
+            # Convert weather_normals dict to DataFrame as required by calculate_net_profit
+            weather_conditions_df = pd.DataFrame([weather_normals])
             profit_calc = calculate_net_profit(
                 crop=crop,
-                weather_conditions=weather_normals,
+                weather_conditions=weather_conditions_df,
                 soil_conditions=soil_conditions,
                 month=month
             )
@@ -146,7 +148,7 @@ def generate_monthly_plan_with_normals(
                 profit_calculations.append(profit_calc)
                 
         except Exception as e:
-            print(f"Warning: Could not calculate profit for crop {crop['crop_id']}: {e}")
+            print(f"Warning: Could not calculate profit for crop {crop.get('crop_name', 'Unknown')}: {e}")
             continue
     
     # Rank by profit
@@ -192,9 +194,9 @@ def get_weather_normals_for_month(region: str, month: int) -> Optional[Dict[str,
         row = region_month.iloc[0]
         
         return {
-            'temperature': row['avg_temp_f'],
-            'rainfall': row['avg_rainfall_inches'],
-            'humidity': row.get('avg_humidity_percent', 65),  # Default if not available
+            'avg_temp_f': row['avg_temp_f'],
+            'avg_rainfall_inches': row['avg_rainfall_inches'],
+            'avg_humidity_percent': row.get('avg_humidity_percent', 65),  # Default if not available
         }
         
     except Exception as e:
@@ -221,7 +223,6 @@ def optimize_rotation_sequence(monthly_plans: List[Dict[str, Any]]) -> List[Dict
         crop_info = {
             'month': plan['month'],
             'month_name': plan['month_name'],
-            'crop_id': plan['best_crop']['crop_id'],
             'crop_name': plan['best_crop']['crop_name'],
             'profit_per_acre': plan['best_crop']['net_profit'],
             'roi_percent': plan['best_crop']['roi_percent']
@@ -231,8 +232,8 @@ def optimize_rotation_sequence(monthly_plans: List[Dict[str, Any]]) -> List[Dict
         if i > 0:
             prev_crop = rotation_sequence[-1]
             crop_info['rotation_notes'] = analyze_crop_succession(
-                prev_crop['crop_id'], 
-                crop_info['crop_id']
+                prev_crop['crop_name'], 
+                crop_info['crop_name']
             )
         
         rotation_sequence.append(crop_info)
@@ -240,32 +241,32 @@ def optimize_rotation_sequence(monthly_plans: List[Dict[str, Any]]) -> List[Dict
     return rotation_sequence
 
 
-def analyze_crop_succession(prev_crop_id: str, current_crop_id: str) -> str:
+def analyze_crop_succession(prev_crop_name: str, current_crop_name: str) -> str:
     """
     Analyze the benefits or concerns of crop succession.
     
     Args:
-        prev_crop_id: Previous crop ID
-        current_crop_id: Current crop ID
+        prev_crop_name: Previous crop name
+        current_crop_name: Current crop name
     
     Returns:
         Analysis note about the succession
     """
     # Simple rotation rules (can be expanded)
     rotation_benefits = {
-        ('CORN', 'SOYBEAN'): 'Good rotation: soybeans fix nitrogen for corn',
-        ('SOYBEAN', 'CORN'): 'Excellent rotation: corn utilizes nitrogen from soybeans',
-        ('WHEAT', 'SOYBEAN'): 'Good rotation: different nutrient requirements',
-        ('POTATO', 'WHEAT'): 'Good rotation: breaks disease cycles'
+        ('Corn (field)', 'Soybean'): 'Good rotation: soybeans fix nitrogen for corn',
+        ('Soybean', 'Corn (field)'): 'Excellent rotation: corn utilizes nitrogen from soybeans',
+        ('Wheat', 'Soybean'): 'Good rotation: different nutrient requirements',
+        ('Potato', 'Wheat'): 'Good rotation: breaks disease cycles'
     }
     
     rotation_concerns = {
-        ('CORN', 'CORN'): 'Concern: consecutive corn may deplete soil nutrients',
-        ('POTATO', 'POTATO'): 'Concern: consecutive potatoes increase disease risk',
-        ('TOMATO', 'POTATO'): 'Concern: both are nightshades, may share diseases'
+        ('Corn (field)', 'Corn (field)'): 'Concern: consecutive corn may deplete soil nutrients',
+        ('Potato', 'Potato'): 'Concern: consecutive potatoes increase disease risk',
+        ('Tomato (processing)', 'Potato'): 'Concern: both are nightshades, may share diseases'
     }
     
-    succession = (prev_crop_id, current_crop_id)
+    succession = (prev_crop_name, current_crop_name)
     
     if succession in rotation_benefits:
         return rotation_benefits[succession]
@@ -304,7 +305,6 @@ def run_long_term_pipeline_for_parcel(
                     plan_record = {
                         'month': plan['month'],
                         'month_name': plan['month_name'],
-                        'crop_id': plan['best_crop']['crop_id'],
                         'crop_name': plan['best_crop']['crop_name'],
                         'profit_per_acre': plan['best_crop']['net_profit'],
                         'roi_percent': plan['best_crop']['roi_percent'],

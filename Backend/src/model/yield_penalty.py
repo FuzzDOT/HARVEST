@@ -2,6 +2,7 @@
 Yield penalty calculations based on weather and soil deviations from ideal conditions.
 """
 
+import pandas as pd
 from typing import Dict, Any
 from ..config import (
     TEMP_PENALTY_FACTOR, RAIN_PENALTY_FACTOR, SOIL_PH_PENALTY_FACTOR,
@@ -101,7 +102,7 @@ def calculate_soil_ph_penalty(actual_ph: float) -> float:
 
 
 def calculate_total_yield_penalty(
-    weather_conditions: Dict[str, float],
+    weather_conditions: pd.DataFrame,
     crop_requirements: Dict[str, Any],
     soil_conditions: Dict[str, float]
 ) -> Dict[str, float]:
@@ -109,24 +110,51 @@ def calculate_total_yield_penalty(
     Calculate total yield penalty from all environmental factors.
     
     Args:
-        weather_conditions: Dict with 'temperature' and 'rainfall' keys
+        weather_conditions: DataFrame with weather data (columns: avg_temp_f, avg_rainfall_inches, etc.)
         crop_requirements: Crop specification dictionary
         soil_conditions: Dict with 'ph' key
     
     Returns:
         Dictionary with individual penalties and total penalty
     """
+    # Calculate average weather conditions from the forecast data
+    avg_temp = weather_conditions['avg_temp_f'].mean()
+    total_rainfall = weather_conditions['avg_rainfall_inches'].sum()
+    
+    # Default ideal ranges for crops (these could be enhanced with crop-specific data)
+    # For now, using general agricultural optimal ranges
+    crop_category = crop_requirements.get('category', 'grain')
+    
+    # Default ideal temperature ranges by crop category (in Fahrenheit)
+    temp_ranges = {
+        'grain': (60, 85),    # corn, wheat, rice
+        'legume': (65, 80),   # peanuts, soybeans  
+        'fiber': (70, 95),    # cotton
+        'vegetable': (60, 80) # general vegetables
+    }
+    
+    # Default ideal rainfall ranges by crop category (inches per month)
+    rain_ranges = {
+        'grain': (2, 6),
+        'legume': (2, 5), 
+        'fiber': (3, 8),
+        'vegetable': (2, 6)
+    }
+    
+    ideal_temp_min, ideal_temp_max = temp_ranges.get(crop_category, (60, 85))
+    ideal_rain_min, ideal_rain_max = rain_ranges.get(crop_category, (2, 6))
+    
     # Calculate individual penalties
     temp_penalty = calculate_temperature_penalty(
-        weather_conditions['temperature'],
-        crop_requirements['ideal_temp_min'],
-        crop_requirements['ideal_temp_max']
+        avg_temp,
+        ideal_temp_min,
+        ideal_temp_max
     )
     
     rain_penalty = calculate_rainfall_penalty(
-        weather_conditions['rainfall'],
-        crop_requirements['ideal_rain_min'],
-        crop_requirements['ideal_rain_max']
+        total_rainfall,
+        ideal_rain_min,
+        ideal_rain_max
     )
     
     ph_penalty = calculate_soil_ph_penalty(soil_conditions['ph'])
