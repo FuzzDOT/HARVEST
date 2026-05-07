@@ -1,6 +1,6 @@
 # HARVEST
 
-**Hackathon project by Team HARVEST (FuzzDOT) - an end to end crop planning platform that combines agronomic rules, weather data, and profitability modeling to recommend what to plant next.**
+**Hackathon project by Team HARVEST - an end to end crop planning platform that combines agronomic rules, weather data, and profitability modeling to recommend what to plant next.**
 
 ---
 
