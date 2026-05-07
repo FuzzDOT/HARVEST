@@ -1,6 +1,6 @@
 # HARVEST
 
-**Hackathon project by Team HARVEST (FuzzDOT) — an end-to-end crop planning platform that combines agronomic rules, weather data, and profitability modeling to recommend what to plant next.**
+**Hackathon project by Team HARVEST (FuzzDOT) - an end-to-end crop planning platform that combines agronomic rules, weather data, and profitability modeling to recommend what to plant next.**
 
 ---
 
@@ -24,7 +24,7 @@ The app supports both:
 
 This repository is the team’s hackathon build: rapid, practical, and demo-ready.
 
-The goal was to ship a complete workflow quickly — from data loading and scoring logic in the backend to an interactive frontend that makes recommendations easy to explore.
+The goal was to ship a complete workflow quickly - from data loading and scoring logic in the backend to an interactive frontend that makes recommendations easy to explore.
 
 ---
 
@@ -94,11 +94,11 @@ HARVEST/
 
 Main backend routes include:
 
-- `POST /api/v1/predict/month` — monthly recommendations
-- `POST /api/v1/plan/annual` — annual rotation plan
-- `POST /api/v1/predict/location` — location/timezone-based prediction
-- `GET /api/v1/health` and `GET /health` — health checks
-- `GET /docs` — Swagger UI
+- `POST /api/v1/predict/month` - monthly recommendations
+- `POST /api/v1/plan/annual` - annual rotation plan
+- `POST /api/v1/predict/location` - location/timezone-based prediction
+- `GET /api/v1/health` and `GET /health` - health checks
+- `GET /docs` - Swagger UI
 
 The backend also exposes data, comparison, utility, and per-session result endpoints in `Backend/main.py`.
 
@@ -150,10 +150,10 @@ The backend expects CSV datasets in `Backend/data/` for:
 
 ## Team
 
-- Faaz Mohamed — Backend / ML
-- Evan Jackson — Frontend
-- Ayaan Mahajan — Frontend
-- Zhengyao Zhou — Data Management
+- Faaz Mohamed - Backend / ML
+- Evan Jackson - Frontend
+- Ayaan Mahajan - Frontend
+- Zhengyao Zhou - Data Management
 
 ---
 
